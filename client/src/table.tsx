@@ -54,7 +54,7 @@ function confirmLabel(action: GameAction | null, pending: boolean): string {
 
 function pileRows(cards: readonly PublicCard[]): { rank: string; suits: PublicCard[] }[] {
   const rows: { rank: string; suits: PublicCard[] }[] = [];
-  for (const card of cards) {
+  for (const card of sortCards(cards)) {
     let row = rows.find((item) => item.rank === card.rank);
     if (!row) {
       row = { rank: card.rank, suits: [] };
