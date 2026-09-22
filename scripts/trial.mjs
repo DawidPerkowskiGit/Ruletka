@@ -140,7 +140,7 @@ async function run() {
 
   try {
     await host.goto(base);
-    await host.getByTestId('conn').filter({ hasText: 'Połączono' }).waitFor();
+    await host.getByTestId('nick').waitFor();
     await host.getByTestId('nick').fill('Ala');
     await press(host.getByTestId('create-private'));
     await host.getByTestId('code').waitFor();
@@ -157,7 +157,7 @@ async function run() {
       await page.getByRole('heading', { name: 'Otwarte stoły' }).waitFor();
       if ((await page.getByTestId(`room-${code}`).count()) !== 0) throw new Error('prywatny stół jest na liście');
       await page.goto(`${base}/gra/${code}`);
-      await page.getByTestId('conn').filter({ hasText: 'Połączono' }).waitFor();
+      await page.getByTestId('nick').waitFor();
       await page.getByTestId('nick').fill(nick);
       await page.getByTestId('join-code').fill(code);
       await press(page.getByTestId('join-submit'));
@@ -471,7 +471,6 @@ async function run() {
       nodes.map((node) => node.getAttribute('data-testid')).sort(),
     );
     await host.reload();
-    await host.getByTestId('conn').filter({ hasText: 'Połączono' }).waitFor();
     await host.locator('.app[data-phase="playing"]').waitFor();
     const handAfter = await host.locator('[data-testid^="hand-"][data-rank]').evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('data-testid')).sort(),
