@@ -304,6 +304,7 @@ input {
   background: transparent;
   border: 1px dashed rgba(255, 255, 255, 0.28);
   box-shadow: none;
+  pointer-events: none;
 }
 
 .center {
@@ -434,6 +435,8 @@ input {
 .stack > :first-child { top: 0; z-index: 1; }
 
 .stack > :last-child { bottom: 0; z-index: 2; }
+
+.stack > .card:not(.ghost) { z-index: 3; }
 
 .more {
   position: relative;
