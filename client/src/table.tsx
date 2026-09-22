@@ -168,6 +168,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
     setDownSel(null);
     setPileOpen(false);
     setArmed(null);
+    setMoreOpen(false);
   }, [view.revision]);
 
   useEffect(() => {
@@ -334,6 +335,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
     if (pending) return;
     if (armed === kind) {
       setArmed(null);
+      setMoreOpen(false);
       send(message, true);
       return;
     }
@@ -343,12 +345,37 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
   return (
     <div className="play-layout">
       <div className="play-main">
-        <p className="banner" data-testid="banner">
-          {view.log.at(-1) ? <LogText entry={view.log.at(-1)!} /> : 'Czekam na ruch.'}
-        </p>
-        <div className={`turn-banner${view.yourTurn ? ' mine' : ''}`} data-testid="turn" data-yours={view.yourTurn ? '1' : '0'} data-player={view.currentPlayerId ?? ''}>
-          {view.phase === 'finished' ? 'Koniec partii' : view.yourTurn ? 'Twoja tura' : `Tura: ${current?.nick ?? '—'}`}
-        </div>
+        {view.phase !== 'finished' && (hand.length > 0 || hostPlaying) ? (
+          <div className="more">
+            <button type="button" data-testid="more" aria-expanded={moreOpen} onClick={() => setMoreOpen((open) => !open)}>
+              {moreOpen ? 'Zamknij' : 'Więcej'}
+            </button>
+            {moreOpen ? (
+              <div className="more-list">
+                {hand.length > 0 ? (
+                  <>
+                    <button type="button" data-testid="hand-mode" aria-pressed={autoSort} onClick={() => setAutoSort((value) => !value)}>
+                      {autoSort ? 'Autosort' : 'Ręcznie'}
+                    </button>
+                    <button type="button" data-testid="hand-sort" onClick={sortNow}>
+                      Ręczny sort
+                    </button>
+                  </>
+                ) : null}
+                {hostPlaying ? (
+                  <button type="button" data-testid="end-game" disabled={pending} onClick={() => arm('end', { type: 'endGame' })}>
+                    {armed === 'end' ? 'Potwierdź zakończenie' : 'Zakończ grę'}
+                  </button>
+                ) : null}
+                {hostPlaying ? (
+                  <button type="button" data-testid="restart-game" disabled={pending} onClick={() => arm('restart', { type: 'rematch' })}>
+                    {armed === 'restart' ? 'Potwierdź restart' : 'Zrestartuj grę'}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="opponents">
           {others.map((seat) => (
             <article key={seat.id} className={`seat${seat.id === view.currentPlayerId ? ' turn' : ''}`} data-testid={`seat-${seat.id}`} data-fly-id={`seat-${seat.id}`} data-player-id={seat.id} data-hand-count={seat.handCount} data-place={seat.exitedPlace ?? ''}>
@@ -509,37 +536,12 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
             })}
           </div>
         </section>
-        {view.phase !== 'finished' && (hand.length > 0 || hostPlaying) ? (
-          <div className="more">
-            <button type="button" data-testid="more" aria-expanded={moreOpen} onClick={() => setMoreOpen((open) => !open)}>
-              {moreOpen ? 'Zamknij' : 'Więcej'}
-            </button>
-            {moreOpen ? (
-              <div className="more-list">
-                {hand.length > 0 ? (
-                  <>
-                    <button type="button" data-testid="hand-mode" aria-pressed={autoSort} onClick={() => setAutoSort((value) => !value)}>
-                      {autoSort ? 'Autosort' : 'Ręcznie'}
-                    </button>
-                    <button type="button" data-testid="hand-sort" onClick={sortNow}>
-                      Ręczny sort
-                    </button>
-                  </>
-                ) : null}
-                {hostPlaying ? (
-                  <button type="button" data-testid="end-game" disabled={pending} onClick={() => arm('end', { type: 'endGame' })}>
-                    {armed === 'end' ? 'Potwierdź zakończenie' : 'Zakończ grę'}
-                  </button>
-                ) : null}
-                {hostPlaying ? (
-                  <button type="button" data-testid="restart-game" disabled={pending} onClick={() => arm('restart', { type: 'rematch' })}>
-                    {armed === 'restart' ? 'Potwierdź restart' : 'Zrestartuj grę'}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        <p className="banner" data-testid="banner">
+          {view.log.at(-1) ? <LogText entry={view.log.at(-1)!} /> : 'Czekam na ruch.'}
+        </p>
+        <div className={`turn-banner${view.yourTurn ? ' mine' : ''}`} data-testid="turn" data-yours={view.yourTurn ? '1' : '0'} data-player={view.currentPlayerId ?? ''}>
+          {view.phase === 'finished' ? 'Koniec partii' : view.yourTurn ? 'Twoja tura' : `Tura: ${current?.nick ?? '—'}`}
+        </div>
         {view.phase !== 'finished' && canResign ? (
           <div className="table-tools">
             <button type="button" className="resign" data-testid="resign" disabled={pending} onClick={() => arm('resign', { type: 'resign' })}>

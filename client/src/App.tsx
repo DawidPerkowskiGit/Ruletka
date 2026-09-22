@@ -206,9 +206,11 @@ export function App() {
         <button type="button" className="brand" data-testid="brand" onClick={goToHomeScreen}>
           Ruletka
         </button>
-        <span className={`conn ${conn}`} data-testid="conn">
-          {conn === 'open' ? 'Połączono' : conn === 'connecting' ? 'Łączę' : 'Rozłączono'}
-        </span>
+        {conn === 'open' ? null : (
+          <span className={`conn ${conn}`} data-testid="conn">
+            {conn === 'connecting' ? 'Łączę' : 'Rozłączono'}
+          </span>
+        )}
         {view && view.phase !== 'lobby' ? (
           <button type="button" className="log-toggle" data-testid="log-toggle" onClick={() => setLogOpen((open) => !open)}>
             {logOpen ? 'Zamknij log' : 'Log partii'}
