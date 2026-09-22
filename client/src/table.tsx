@@ -612,9 +612,14 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
                 <p key={seat.id}>{seat.nick} odpadł</p>
               ))}
             {view.youId === view.hostId ? (
-              <button type="button" data-testid="rematch" disabled={pending} onClick={() => send({ type: 'rematch' }, true)}>
-                Jeszcze raz
-              </button>
+              <>
+                <button type="button" data-testid="rematch" disabled={pending} onClick={() => send({ type: 'rematch' }, true)}>
+                  Jeszcze raz
+                </button>
+                <button type="button" data-testid="home-exit" disabled={pending} onClick={() => send({ type: 'leave' }, true)}>
+                  Strona główna
+                </button>
+              </>
             ) : (
               <p>Czekam na gospodarza.</p>
             )}

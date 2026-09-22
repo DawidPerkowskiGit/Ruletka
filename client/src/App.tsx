@@ -173,6 +173,16 @@ export function App() {
   }, [remember, unlock]);
 
   const urlCode = roomCodeFromPath(path);
+
+  function goToHomeScreen() {
+    if (viewRef.current) {
+      send({ type: 'leave' }, true);
+      return;
+    }
+    goHome();
+    setPath('/');
+  }
+
   let body;
   if (view?.phase === 'lobby') body = <Lobby view={view} pending={pending} send={send} />;
   else if (view) body = <Table view={view} pending={pending} logOpen={logOpen} send={send} />;
@@ -193,7 +203,9 @@ export function App() {
   return (
     <div className={`app${view && view.phase !== 'lobby' ? ' in-game' : ''}`} data-phase={view?.phase ?? 'home'} data-pending={pending ? '1' : '0'} data-revision={view?.revision ?? 0}>
       <header className="topbar">
-        <div className="brand">Ruletka</div>
+        <button type="button" className="brand" data-testid="brand" onClick={goToHomeScreen}>
+          Ruletka
+        </button>
         <span className={`conn ${conn}`} data-testid="conn">
           {conn === 'open' ? 'Połączono' : conn === 'connecting' ? 'Łączę' : 'Rozłączono'}
         </span>

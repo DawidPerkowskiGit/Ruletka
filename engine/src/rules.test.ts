@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRoom, addPlayer, endGame, kickPlayer, listPublic, rematch, resignGame, setTableSize, startGame, timeoutPlayer } from './room.js';
+import { createRoom, addPlayer, endGame, kickPlayer, leaveSeat, listPublic, rematch, resignGame, setTableSize, startGame, timeoutPlayer } from './room.js';
 import { applyAction, dealGame, legalActions, lowestOpening, resign } from './game.js';
 import { chooseAction } from './ai.js';
 import { project } from './view.js';
@@ -775,5 +775,15 @@ describe('stół', () => {
     }
     expect(game.phase).toBe('finished');
     expect(game.loserId).toBeTruthy();
+
+    const ended = must(endGame(solo, 'a'));
+    const left = must(leaveSeat(ended, 'a'));
+    expect(left.players.map((player) => player.id)).toEqual(['ai-AI0002-1', 'ai-AI0002-2']);
+    expect(left.hostId).toBe('ai-AI0002-1');
+    const during = must(startGame(alone, 'a', () => 0));
+    const dropped = must(leaveSeat(during, 'a'));
+    expect(dropped.players.find((player) => player.id === 'a')?.id).toBe('a');
+    expect(dropped.game!.players[0]!.dropped).toBe(true);
+    expect(dropped.game!.players[0]!.hand).toEqual([]);
   });
 });
