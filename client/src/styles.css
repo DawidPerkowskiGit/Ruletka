@@ -244,9 +244,14 @@ input {
 }
 
 .mini.red { color: var(--red); }
-.mini.back {
-  background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 4px, #2563eb 4px, #2563eb 8px);
+.mini.back,
+.card.back {
+  background: #163a86 url('./assets/card-back.svg') center / 100% 100% no-repeat;
+  color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(243, 230, 192, 0.35), 0 6px 14px rgba(0, 0, 0, 0.28);
 }
+
+.mini.back { box-shadow: inset 0 0 0 1px rgba(243, 230, 192, 0.55); }
 .mini.ghost, .card.ghost {
   background: transparent;
   border: 1px dashed rgba(255, 255, 255, 0.28);
@@ -280,6 +285,19 @@ input {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.own-hand-count { display: inline; }
+
+.between-count {
+  display: none;
+  margin: 0;
+  padding: 0 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .empty-pile {
@@ -424,11 +442,6 @@ button.card { min-width: 56px; min-height: 80px; }
 .card.choice { box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0, 0, 0, 0.28); }
 
 .card.selected { transform: translateY(-10px); }
-
-.card.back {
-  background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 6px, #2557d6 6px, #2557d6 12px);
-  color: transparent;
-}
 
 .corner {
   position: absolute;
@@ -659,6 +672,9 @@ button.take { background: var(--gold); color: #2a2108; }
     padding: 8px;
   }
   .card { width: 56px; height: 80px; }
+  .own-hand-count { display: none; }
+  .between-count { display: block; }
+  .banner { -webkit-line-clamp: 1; font-size: 13px; padding: 3px 8px; }
   .hand { min-height: 96px; }
   .fan-slot { height: 80px; }
   .fan-slot:last-child { width: 56px; }

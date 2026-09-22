@@ -112,8 +112,9 @@ function inPlay(seat: SeatView): boolean {
   return !seat.dropped && seat.exitedPlace === null;
 }
 
-function seatNote(seat: SeatView, playing: boolean): string {
-  const parts = [`${seat.handCount} w ręce`];
+function seatNote(seat: SeatView, playing: boolean, withHand = true): string {
+  const parts: string[] = [];
+  if (withHand) parts.push(`${seat.handCount} w ręce`);
   if (seat.ai) parts.push('komputer');
   if (seat.exitedPlace) parts.push(`miejsce ${seat.exitedPlace}`);
   if (seat.dropped) parts.push('odpadł');
@@ -340,6 +341,9 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
   return (
     <div className="play-layout">
       <div className="play-main">
+        <p className="banner" data-testid="banner">
+          {view.log.at(-1) ? <LogText entry={view.log.at(-1)!} /> : 'Czekam na ruch.'}
+        </p>
         <div className={`turn-banner${view.yourTurn ? ' mine' : ''}`} data-testid="turn" data-yours={view.yourTurn ? '1' : '0'} data-player={view.currentPlayerId ?? ''}>
           {view.phase === 'finished' ? 'Koniec partii' : view.yourTurn ? 'Twoja tura' : `Tura: ${current?.nick ?? '—'}`}
         </div>
@@ -428,9 +432,6 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
             </div>
           ) : null}
         </section>
-        <p className="banner" data-testid="banner">
-          {view.log.at(-1) ? <LogText entry={view.log.at(-1)!} /> : 'Czekam na ruch.'}
-        </p>
         {view.handNote ? (
           <p className="private-note" data-testid="private-note">
             Tylko ty widzisz: <CardChip card={view.handNote} />
@@ -438,7 +439,9 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
         ) : null}
         <section className={`mine${view.yourTurn ? ' turn' : ''}`} data-testid="me" data-fly-id={`seat-${me.id}`} data-player-id={me.id} data-hand-count={me.handCount}>
           <header>
-            {me.nick} · {seatNote(me, view.phase === 'playing')}
+            {me.nick}
+            <span className="own-hand-count"> · {me.handCount} w ręce</span>
+            {seatNote(me, view.phase === 'playing', false) ? ` · ${seatNote(me, view.phase === 'playing', false)}` : ''}
           </header>
           <div className="my-table">
             {me.faceDown.map((slot, index) => {
@@ -469,6 +472,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
               );
             })}
           </div>
+          <p className="between-count">{me.handCount} w ręce</p>
           <div
             className="hand"
             data-testid="hand"
@@ -516,10 +520,10 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
                 {hand.length > 0 ? (
                   <>
                     <button type="button" data-testid="hand-mode" aria-pressed={autoSort} onClick={() => setAutoSort((value) => !value)}>
-                      {autoSort ? 'Auto' : 'Ręcznie'}
+                      {autoSort ? 'Autosort' : 'Ręcznie'}
                     </button>
                     <button type="button" data-testid="hand-sort" onClick={sortNow}>
-                      Sortuj
+                      Ręczny sort
                     </button>
                   </>
                 ) : null}
