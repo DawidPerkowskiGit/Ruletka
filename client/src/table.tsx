@@ -354,23 +354,25 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
             <article key={seat.id} className={`seat${seat.id === view.currentPlayerId ? ' turn' : ''}`} data-testid={`seat-${seat.id}`} data-fly-id={`seat-${seat.id}`} data-player-id={seat.id} data-hand-count={seat.handCount} data-place={seat.exitedPlace ?? ''}>
               <header>
                 <strong>{seat.nick}</strong>
-                <span>{seatNote(seat, view.phase === 'playing')}</span>
+                <span className="seat-long">{seatNote(seat, view.phase === 'playing')}</span>
+                <span className="seat-short">{seat.handCount}</span>
               </header>
-              <div className="mini-row">
-                {seat.faceDown.map((slot, index) =>
-                  slot === 'back' ? <span key={index} className="mini back" data-fly-id={`down-${seat.id}-${index}`} /> : <span key={index} className="mini ghost" />,
-                )}
-              </div>
-              <div className="mini-row">
-                {seat.faceUp.map((card, index) =>
-                  card ? (
-                    <span key={card.id} className={`mini face${card.suit === 'hearts' || card.suit === 'diamonds' ? ' red' : ''}`} data-rank={card.rank} data-fly-id={`card-${card.id}`}>
-                      {card.rank}
-                    </span>
-                  ) : (
-                    <span key={`empty-${index}`} className="mini ghost" />
-                  ),
-                )}
+              <div className="table-slots">
+                {seat.faceDown.map((slot, index) => {
+                  const card = seat.faceUp[index];
+                  return (
+                    <div className="stack" key={index}>
+                      {slot === 'back' ? <span className="mini back" data-fly-id={`down-${seat.id}-${index}`} /> : <span className="mini ghost" />}
+                      {card ? (
+                        <span className={`mini face${card.suit === 'hearts' || card.suit === 'diamonds' ? ' red' : ''}`} data-rank={card.rank} data-fly-id={`card-${card.id}`}>
+                          {card.rank}
+                        </span>
+                      ) : (
+                        <span className="mini ghost" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </article>
           ))}
@@ -452,7 +454,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
               const downChoice = view.legal.faceDownSlots.includes(index);
               const upChoice = Boolean(up && (view.legal.faceUp.includes(up.id) || view.legal.wayB?.faceUpId === up.id));
               return (
-                <div className="col" key={index}>
+                <div className="col stack" key={index}>
                   {slot === 'back' ? (
                     <CardBack testId={`me-down-${index}`} flyId={`down-${me.id}-${index}`} choice={downChoice} selected={downSel === index} disabled={!downChoice || locked} onClick={downChoice ? () => toggleDown(index) : undefined} />
                   ) : (
