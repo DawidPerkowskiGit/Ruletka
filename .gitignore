@@ -1,0 +1,9 @@
+node_modules
+dist
+client/dist
+*.log
+.DS_Store
+playwright-report
+test-results
+blob-report
+.trial
