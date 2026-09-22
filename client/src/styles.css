@@ -318,7 +318,7 @@ input {
   padding: 4px;
 }
 
-.center-meta, .banner, .hint {
+.banner, .hint {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -349,15 +349,19 @@ input {
   line-height: 1.15;
 }
 
-.empty-pile {
+button.empty-pile {
   width: 76px;
   height: 108px;
+  min-width: 0;
+  min-height: 0;
   border-radius: 10px;
   border: 1px dashed rgba(255, 255, 255, 0.45);
   display: grid;
   place-items: center;
   text-align: center;
   padding: 6px;
+  background: transparent;
+  color: inherit;
   font-size: 13px;
 }
 
@@ -611,11 +615,27 @@ button.card { min-width: 56px; min-height: 80px; }
   max-height: 32dvh;
   margin: 0;
   padding: 6px;
-  list-style: none;
   overflow: auto;
   border-radius: 12px;
   background: #143526;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.pile-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pile-list ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .pile-list li {
@@ -795,8 +815,8 @@ button.take { background: var(--gold); color: #2a2108; }
   .fan-slot { height: 80px; }
   .fan-slot:last-child { width: 56px; }
   .center { min-height: 104px; }
-  .center .card, .reveal .card, .empty-pile { width: 52px; height: 74px; }
-  .empty-pile { font-size: 11px; padding: 4px; }
+  .center .card, .reveal .card, button.empty-pile { width: 52px; height: 74px; }
+  button.empty-pile { font-size: 11px; padding: 4px; }
   .opponents { gap: 4px; padding: 4px 6px 6px; overflow: hidden; }
   .seat {
     flex: 1 1 0;

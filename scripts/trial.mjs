@@ -74,6 +74,12 @@ async function sameText(pages, testId) {
   return values[0];
 }
 
+async function pileStat(pages, name) {
+  const values = await Promise.all(pages.map((page) => page.getByTestId('center').getAttribute(name)));
+  if (new Set(values).size !== 1) throw new Error(`${name}: ${values.join(' | ')}`);
+  return values[0];
+}
+
 async function press(locator) {
   if (touch) await locator.tap();
   else await locator.click();
@@ -220,7 +226,7 @@ async function run() {
     await press(natural);
     await press(actor.getByTestId('confirm'));
     await waitRev(pages, beforeNatural);
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 1') throw new Error(await sameText(pages, 'center-count'));
+    if ((await pileStat(pages, 'data-center-count')) !== '1') throw new Error(await pileStat(pages, 'data-center-count'));
     pass(touch ? 'dotyk: zagranie karty z prawdziwego rozdania' : 'zagranie karty z prawdziwego rozdania');
 
     const [ala, bart, cela] = ids;
@@ -242,14 +248,14 @@ async function run() {
     await press(host.getByTestId('confirm'));
     await waitRev(pages, beforeEqual);
     if ((await host.getByTestId('center-top').getAttribute('data-rank')) !== '7') throw new Error('równa karta nie weszła');
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 2') throw new Error('rozjazd stosu po równej karcie');
+    if ((await pileStat(pages, 'data-center-count')) !== '2') throw new Error('rozjazd stosu po równej karcie');
     pass('zwykła karta równa');
 
     const beforeHigher = await revision(host);
     await press(bartek.getByTestId('hand-A-hearts'));
     await press(bartek.getByTestId('confirm'));
     await waitRev(pages, beforeHigher);
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 3') throw new Error('rozjazd po wyższej karcie');
+    if ((await pileStat(pages, 'data-center-count')) !== '3') throw new Error('rozjazd po wyższej karcie');
     if ((await host.getByTestId('center-top').getAttribute('data-rank')) !== 'A') throw new Error('wyższa karta nie weszła');
     pass('zwykła karta wyższa');
 
@@ -271,7 +277,7 @@ async function run() {
     const beforeTake = await revision(host);
     await press(host.getByTestId('take-pile'));
     await waitRev(pages, beforeTake);
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('kupka została na stole');
+    if ((await pileStat(pages, 'data-center-count')) !== '0') throw new Error('kupka została na stole');
     if ((await host.getByTestId('me').getAttribute('data-hand-count')) !== '2') throw new Error('kupka nie wróciła do ręki');
     if (!(await host.getByTestId('banner').innerText()).includes('bierze kupkę')) throw new Error('log nie mówi o kupce');
     pass('odmowa słabszej karty i wzięcie kupki');
@@ -291,14 +297,14 @@ async function run() {
     await press(host.getByTestId('hand-5-hearts'));
     await press(host.getByTestId('confirm'));
     await waitRev(pages, beforeFive);
-    if ((await sameText(pages, 'burned')) !== 'Spalone: 0') throw new Error('piątka skasowała stos');
+    if ((await pileStat(pages, 'data-burned')) !== '0') throw new Error('piątka skasowała stos');
     if ((await host.getByTestId('center-top').getAttribute('data-rank')) !== '5') throw new Error('piątka nie leży na asie');
     const beforeThree = await revision(host);
     await press(bartek.getByTestId('hand-3-diamonds'));
     await press(bartek.getByTestId('confirm'));
     await waitRev(pages, beforeThree);
     if ((await host.getByTestId('center-top').getAttribute('data-rank')) !== '3') throw new Error('trójka nie weszła na piątkę');
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 3') throw new Error('rozjazd po piątce');
+    if ((await pileStat(pages, 'data-center-count')) !== '3') throw new Error('rozjazd po piątce');
     pass('piątka na wysoką kartę i dowolna karta na piątkę');
 
     await setup(request, pages, code, ids, () =>
@@ -316,8 +322,8 @@ async function run() {
     await press(host.getByTestId('hand-10-hearts'));
     await press(host.getByTestId('confirm'));
     await waitRev(pages, beforeTen);
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('dziesiątka nie skasowała stosu');
-    if ((await sameText(pages, 'burned')) !== 'Spalone: 2') throw new Error(await sameText(pages, 'burned'));
+    if ((await pileStat(pages, 'data-center-count')) !== '0') throw new Error('dziesiątka nie skasowała stosu');
+    if ((await pileStat(pages, 'data-burned')) !== '2') throw new Error(await pileStat(pages, 'data-burned'));
     if ((await host.getByTestId('turn').getAttribute('data-yours')) !== '1') throw new Error('tura uciekła po dziesiątce');
     if ((await bartek.getByTestId('turn').getAttribute('data-yours')) !== '0') throw new Error('Bartek dostał turę po cudzej dziesiątce');
     const beforeOpen = await revision(host);
@@ -351,8 +357,8 @@ async function run() {
     const beforeQuads = await revision(host);
     await press(host.getByTestId('confirm'));
     await waitRev(pages, beforeQuads);
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('czwórka nie skasowała stosu');
-    if ((await sameText(pages, 'burned')) !== 'Spalone: 6') throw new Error(await sameText(pages, 'burned'));
+    if ((await pileStat(pages, 'data-center-count')) !== '0') throw new Error('czwórka nie skasowała stosu');
+    if ((await pileStat(pages, 'data-burned')) !== '6') throw new Error(await pileStat(pages, 'data-burned'));
     if ((await host.getByTestId('turn').getAttribute('data-yours')) !== '1') throw new Error('tura nie została przy graczu po czwórce');
     if ((await host.locator('[data-testid^="hand-"][data-rank]').count()) !== 1) throw new Error('z ręki zniknęło za dużo kart');
     pass('cztery takie same z ręki');
@@ -380,7 +386,7 @@ async function run() {
     const beforeWay = await revision(host);
     await press(host.getByTestId('confirm'));
     await waitRev(pages, beforeWay);
-    if ((await sameText(pages, 'burned')) !== 'Spalone: 5') throw new Error(await sameText(pages, 'burned'));
+    if ((await pileStat(pages, 'data-burned')) !== '5') throw new Error(await pileStat(pages, 'data-burned'));
     if ((await host.locator('[data-rank="3"]').count()) !== 0) throw new Error('zakryta pod spodem została pokazana');
     if ((await bartek.locator('[data-rank="3"]').count()) !== 0) throw new Error('zakryta widać u przeciwnika');
     if ((await host.getByTestId('me-down-0').count()) !== 1) throw new Error('zakryty slot zniknął');
@@ -409,7 +415,7 @@ async function run() {
     if ((await host.getByTestId('me-up-7-spades').evaluate((node) => node.tagName)) !== 'DIV') {
       throw new Error('odkryta dała się kliknąć przy ręce większej niż trzy');
     }
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('nielegalne 3+1 zmieniło stół');
+    if ((await pileStat(pages, 'data-center-count')) !== '0') throw new Error('nielegalne 3+1 zmieniło stół');
     pass('odrzucenie 3+1, gdy w ręce jest czwarta karta');
 
     await setup(request, pages, code, ids, () =>
@@ -427,7 +433,7 @@ async function run() {
     await press(host.getByTestId('me-up-4-hearts'));
     await press(host.getByTestId('confirm'));
     await waitRev(pages, beforeLowUp);
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('za niska odkryta została na środku');
+    if ((await pileStat(pages, 'data-center-count')) !== '0') throw new Error('za niska odkryta została na środku');
     if ((await host.getByTestId('me').getAttribute('data-hand-count')) !== '3') throw new Error('kupka i karta nie wróciły do ręki');
     if ((await host.locator('[data-testid="hand-4-hearts"]').count()) !== 1) throw new Error('odkryta nie weszła do ręki');
     if ((await bartek.locator('[data-testid="hand-4-hearts"]').count()) !== 0) throw new Error('karta z ręki Ali widać u Bartka');
@@ -448,7 +454,7 @@ async function run() {
     await press(host.getByTestId('me-down-0'));
     await press(host.getByTestId('confirm'));
     await waitRev(pages, beforeLowDown);
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('za niska zakryta została na środku');
+    if ((await pileStat(pages, 'data-center-count')) !== '0') throw new Error('za niska zakryta została na środku');
     for (const page of pages) {
       if ((await page.getByTestId('reveal-card').getAttribute('data-rank')) !== '3') throw new Error('zakryta nie została pokazana');
     }
@@ -477,7 +483,7 @@ async function run() {
     );
     if (JSON.stringify(handBefore) !== JSON.stringify(handAfter)) throw new Error(`ręka po odświeżeniu ${handAfter.join(',')}`);
     if ((await host.getByTestId('turn').getAttribute('data-yours')) !== '1') throw new Error('po odświeżeniu to nie jest ta sama tura');
-    if ((await bartek.getByTestId('center-count').innerText()) !== (await host.getByTestId('center-count').innerText())) {
+    if ((await bartek.getByTestId('center').getAttribute('data-center-count')) !== (await host.getByTestId('center').getAttribute('data-center-count'))) {
       throw new Error('stan rozjechał się po odświeżeniu');
     }
     const beforeRefreshPlay = await revision(bartek);
@@ -523,8 +529,8 @@ async function run() {
       nodes.map((node) => Number(node.getAttribute('data-hand-count'))),
     );
     if (again.reduce((total, value) => total + value, 0) !== 34) throw new Error(`nowe ręce ${again.join(',')}`);
-    if ((await sameText(pages, 'burned')) !== 'Spalone: 0') throw new Error('stare spalenie zostało');
-    if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('środek nie jest pusty');
+    if ((await pileStat(pages, 'data-burned')) !== '0') throw new Error('stare spalenie zostało');
+    if ((await pileStat(pages, 'data-center-count')) !== '0') throw new Error('środek nie jest pusty');
     pass('koniec partii i jeszcze raz');
     await shot(host, '04-jeszcze-raz');
   } catch (error) {
