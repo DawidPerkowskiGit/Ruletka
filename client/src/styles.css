@@ -465,18 +465,13 @@ input {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
 }
 
-.more-list button {
+.more-list button,
+.more-list button[aria-pressed='true'] {
   width: 100%;
   min-height: 44px;
-  background: transparent;
-  color: var(--cream);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-.more-list button[aria-pressed='true'] {
-  background: var(--gold);
-  color: #2a2108;
-  border-color: transparent;
+  background: var(--cream);
+  color: var(--ink);
+  border: 0;
 }
 
 .hand {
@@ -702,9 +697,22 @@ button.card.held,
 }
 
 .table-tools button.resign {
-  background: #8f1d1d;
+  background: #4a3218;
   color: #fff;
   border: 0;
+}
+
+button.primary { background: var(--gold); color: #2a2108; }
+
+button.confirm { background: #163e66; color: #fff; }
+
+button.leave {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  flex: none;
+  background: #163e66;
+  color: #fff;
 }
 
 .actions {

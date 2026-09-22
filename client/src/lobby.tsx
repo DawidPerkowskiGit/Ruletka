@@ -78,14 +78,14 @@ export function Lobby({ view, pending, send }: LobbyProps) {
           {me?.ready ? 'Cofnij gotowość' : 'Gotowy'}
         </button>
         {host ? (
-          <button type="button" data-testid="start" disabled={pending || (view.withAi ? view.seats.length > view.tableSize : view.seats.length < 3)} onClick={() => send({ type: 'start' }, true)}>
+        <button type="button" className="primary" data-testid="start" disabled={pending || (view.withAi ? view.seats.length > view.tableSize : view.seats.length < 3)} onClick={() => send({ type: 'start' }, true)}>
             Start
           </button>
         ) : (
           <p>Czekam na gospodarza.</p>
         )}
       </div>
-      <button type="button" data-testid="leave" disabled={pending} onClick={() => send({ type: 'leave' }, true)}>
+      <button type="button" className="leave" data-testid="leave" disabled={pending} onClick={() => send({ type: 'leave' }, true)}>
         Wyjdź ze stołu
       </button>
     </main>
