@@ -92,6 +92,13 @@ button:focus-visible, .card:focus-visible, input:focus-visible {
 
 .brand { font-weight: 800; letter-spacing: 0.04em; margin-right: auto; }
 
+button.brand {
+  padding: 4px 8px;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
 .conn {
   display: inline-flex;
   align-items: center;

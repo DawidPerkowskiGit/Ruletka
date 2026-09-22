@@ -81,11 +81,28 @@ export function kickPlayer(room: RoomState, byId: string, targetId: string): Res
 
 export function leaveLobby(room: RoomState, playerId: string): Result<RoomState> {
   if (room.phase !== 'lobby') return fail('W trakcie partii wyjście to rozłączenie.');
+  return removeSeat(room, playerId);
+}
+
+export function leaveSeat(room: RoomState, playerId: string): Result<RoomState> {
+  if (!room.players.some((seat) => seat.id === playerId)) return fail('Nie ma cię przy stole.');
+  if (room.phase === 'playing' && room.game) {
+    const game = dropOut(room.game, playerId);
+    const next = touch(room);
+    next.game = game;
+    next.phase = game.phase;
+    return { ok: true, value: next };
+  }
+  if (room.phase === 'lobby' || room.phase === 'finished') return removeSeat(room, playerId);
+  return fail('Nie ma cię przy stole.');
+}
+
+function removeSeat(room: RoomState, playerId: string): Result<RoomState> {
   if (!room.players.some((seat) => seat.id === playerId)) return fail('Nie ma cię przy stole.');
   const players = room.players.filter((seat) => seat.id !== playerId);
   const next = touch(room);
   next.players = players;
-  if (next.hostId === playerId) next.hostId = players[0]?.id ?? '';
+  if (next.hostId === playerId) next.hostId = players.find((seat) => !seat.ai)?.id ?? players[0]?.id ?? '';
   return { ok: true, value: next };
 }
 

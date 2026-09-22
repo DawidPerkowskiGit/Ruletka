@@ -11,6 +11,7 @@ import {
   isCard,
   kickPlayer,
   leaveLobby,
+  leaveSeat,
   listPublic,
   project,
   endGame,
@@ -386,7 +387,7 @@ function handle(ws: WebSocket, message: ClientMessage): void {
     return;
   }
   if (message.type === 'leave') {
-    const result = leaveLobby(live.room, playerId);
+    const result = leaveSeat(live.room, playerId);
     if (!result.ok) {
       send(ws, { type: 'error', message: result.error });
       return;
@@ -394,7 +395,7 @@ function handle(ws: WebSocket, message: ClientMessage): void {
     release(ws, live, playerId);
     live.room = result.value;
     send(ws, { type: 'left' });
-    if (live.room.players.length === 0) {
+    if (!live.room.players.some((player) => !player.ai)) {
       if (live.aiTimer) clearTimeout(live.aiTimer);
       rooms.delete(live.room.code);
     } else broadcast(live);
