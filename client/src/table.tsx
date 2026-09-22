@@ -154,6 +154,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
   const flightTimer = useRef<number | null>(null);
   const logRef = useRef<HTMLOListElement>(null);
   const handRef = useRef<HTMLDivElement>(null);
+  const pileRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<{ id: string; pointerId: number; x: number; y: number; mode: 'pending' | 'lift' | 'ignore' } | null>(null);
   const dropRef = useRef<number | null>(null);
   const suppressClick = useRef(false);
@@ -182,6 +183,17 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
     sessionStorage.setItem('ruletka-hand-auto', autoSort ? '1' : '0');
     sessionStorage.setItem('ruletka-hand-order', JSON.stringify(order));
   }, [autoSort, order]);
+
+  useEffect(() => {
+    if (!pileOpen) return;
+    const close = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Node && pileRef.current?.contains(target)) return;
+      setPileOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [pileOpen]);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -404,7 +416,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
           ))}
         </div>
         <section className="center" data-testid="center" data-fly-id="center">
-          <div className={`pile${pileOpen ? ' open' : ''}`}>
+          <div className={`pile${pileOpen ? ' open' : ''}`} ref={pileRef}>
             {view.centerTop ? (
               <button
                 type="button"
