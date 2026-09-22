@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createRoom, addPlayer, endGame, kickPlayer, listPublic, rematch, resignGame, startGame, timeoutPlayer } from './room.js';
+import { createRoom, addPlayer, endGame, kickPlayer, listPublic, rematch, resignGame, setTableSize, startGame, timeoutPlayer } from './room.js';
 import { applyAction, dealGame, legalActions, lowestOpening, resign } from './game.js';
+import { chooseAction } from './ai.js';
 import { project } from './view.js';
 import type { Card, GameState, Rank, Suit } from './types.js';
 
@@ -333,6 +334,8 @@ describe('trzy z ręki plus odkryta', () => {
       code: 'ABCDEF',
       visibility: 'private' as const,
       hostId: 'a',
+      withAi: false,
+      tableSize: 6,
       players: [
         { id: 'a', token: 'token-a', nick: 'Ala', ready: false },
         { id: 'b', token: 'token-b', nick: 'Bartek', ready: false },
@@ -481,6 +484,8 @@ describe('pusta ręka', () => {
       code: 'UKRYTA',
       visibility: 'private' as const,
       hostId: 'a',
+      withAi: false,
+      tableSize: 6,
       players: [A, B, C].map((player) => ({ ...player, token: `secret-${player.id}`, ready: false })),
       phase: 'playing' as const,
       game: taken,
@@ -577,6 +582,8 @@ describe('rozdanie', () => {
       code: 'STAN01',
       visibility: 'private' as const,
       hostId: 'a',
+      withAi: false,
+      tableSize: 6,
       players: [A, B, C].map((player) => ({ ...player, token: `secret-${player.id}`, ready: false })),
       phase: 'playing' as const,
       game,
@@ -719,5 +726,54 @@ describe('stół', () => {
     expect(fromRoom.phase).toBe('finished');
     expect(fromRoom.game!.loserId).toBe('b');
     expect(fromRoom.game!.players[2]!.exitedPlace).toBe(2);
+  });
+
+  it('stół z komputerem dobiera brakujące miejsca i komputer gra do końca', () => {
+    let room = must(createRoom({ code: 'AI0001', visibility: 'private', host: { id: 'a', token: 'ta', nick: 'Ala' }, withAi: true, tableSize: 4 }));
+    expect(setTableSize(room, 'b', 3).ok).toBe(false);
+    room = must(setTableSize(room, 'a', 3));
+    room = must(addPlayer(room, { id: 'b', token: 'tb', nick: 'Bartek' }));
+    room = must(addPlayer(room, { id: 'c', token: 'tc', nick: 'Celina' }));
+    expect(addPlayer(room, { id: 'd', token: 'td', nick: 'Darek' }).ok).toBe(false);
+    room = must(setTableSize(room, 'a', 4));
+    const started = must(startGame(room, 'a', () => 0.2));
+    expect(started.players.map((player) => player.nick)).toEqual(['Ala', 'Bartek', 'Celina', 'Komputer 1']);
+    expect(started.players.filter((player) => player.ai).map((player) => player.id)).toEqual(['ai-AI0001-1']);
+    expect(started.game!.players).toHaveLength(4);
+
+    const alone = must(createRoom({ code: 'AI0002', visibility: 'private', host: { id: 'a', token: 'ta', nick: 'Ala' }, withAi: true, tableSize: 3 }));
+    const solo = must(startGame(alone, 'a', () => 0));
+    expect(solo.players.map((player) => player.nick)).toEqual(['Ala', 'Komputer 1', 'Komputer 2']);
+
+    const hand = state({
+      players: [seat('a', 'Ala', [card('A', 'hearts'), card('6', 'clubs'), card('10', 'spades')]), seat('b', 'Bartek', [card('4', 'diamonds')])],
+      center: [card('3', 'hearts')],
+      current: 0,
+    });
+    expect(chooseAction(hand, 'a')).toEqual({ type: 'playHand', cardIds: ['6-clubs'] });
+    const onlyTen = state({
+      players: [seat('a', 'Ala', [card('10', 'hearts'), card('3', 'clubs')]), seat('b', 'Bartek', [card('4', 'diamonds')])],
+      center: [card('K', 'spades')],
+      current: 0,
+    });
+    expect(chooseAction(onlyTen, 'a')).toEqual({ type: 'playHand', cardIds: ['10-hearts'] });
+    const stuck = state({
+      players: [seat('a', 'Ala', [card('3', 'clubs')]), seat('b', 'Bartek', [card('4', 'diamonds')])],
+      center: [card('K', 'spades')],
+      current: 0,
+    });
+    expect(chooseAction(stuck, 'a')).toEqual({ type: 'takePile' });
+
+    let game = dealGame([A, B, C], () => 0.4);
+    let steps = 0;
+    while (game.phase === 'playing' && steps < 500) {
+      const id = game.players[game.currentIndex!]!.id;
+      const action = chooseAction(game, id);
+      expect(action).not.toBeNull();
+      game = must(applyAction(game, id, action!));
+      steps += 1;
+    }
+    expect(game.phase).toBe('finished');
+    expect(game.loserId).toBeTruthy();
   });
 });

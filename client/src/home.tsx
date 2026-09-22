@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ClientMessage, PublicRoom } from 'engine';
 
 interface HomeProps {
@@ -11,6 +12,7 @@ interface HomeProps {
 
 export function Home({ nick, urlCode, rooms, pending, onNick, send }: HomeProps) {
   const nickOk = nick.trim().length > 0;
+  const [tableSize, setTableSize] = useState(3);
   return (
     <main className="home">
       <h1>Ruletka</h1>
@@ -33,6 +35,27 @@ export function Home({ nick, urlCode, rooms, pending, onNick, send }: HomeProps)
           Stół prywatny
         </button>
       </div>
+      <section className="ai-setup">
+        <h2>Gra z komputerem</h2>
+        <p>Ustal, ile osób siada do stołu. Znajomi mogą wejść kodem, a wolne miejsca przy starcie zajmie komputer.</p>
+        <div className="row">
+          <button type="button" data-testid="table-dec" aria-label="Mniej graczy" disabled={!nickOk || pending || tableSize <= 3} onClick={() => setTableSize((size) => size - 1)}>
+            −
+          </button>
+          <span data-testid="table-size">{tableSize} {tableSize >= 5 ? 'osób' : 'osoby'}</span>
+          <button type="button" data-testid="table-inc" aria-label="Więcej graczy" disabled={!nickOk || pending || tableSize >= 6} onClick={() => setTableSize((size) => size + 1)}>
+            +
+          </button>
+        </div>
+        <button
+          type="button"
+          data-testid="create-ai"
+          disabled={!nickOk || pending}
+          onClick={() => send({ type: 'create', nick: nick.trim(), visibility: 'private', token: '', ai: true, seats: tableSize }, true)}
+        >
+          Stół z komputerem
+        </button>
+      </section>
       <JoinBox nick={nick} urlCode={urlCode} pending={pending} send={send} />
       <section className="open-list">
         <h2>Otwarte stoły</h2>

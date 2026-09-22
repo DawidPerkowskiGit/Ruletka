@@ -20,15 +20,24 @@ export function createRoom(options: {
   code: string;
   visibility: 'public' | 'private';
   host: Identity;
+  withAi?: boolean;
+  tableSize?: number;
 }): Result<RoomState> {
   const nick = sanitizeNick(options.host.nick);
   if (!nick) return fail('Podaj nick (do 20 znaków, bez HTML).');
   if (options.visibility !== 'public' && options.visibility !== 'private') return fail('Wybierz rodzaj stołu.');
+  const withAi = options.withAi === true;
+  const tableSize = withAi ? (options.tableSize ?? MIN_PLAYERS) : MAX_PLAYERS;
+  if (withAi && (!Number.isInteger(tableSize) || tableSize < MIN_PLAYERS || tableSize > MAX_PLAYERS)) {
+    return fail('Stół z komputerem ma od 3 do 6 miejsc.');
+  }
   const room: RoomState = {
     code: options.code,
     visibility: options.visibility,
     hostId: options.host.id,
-    players: [{ id: options.host.id, token: options.host.token, nick, ready: false }],
+    players: [{ id: options.host.id, token: options.host.token, nick, ready: false, ai: false }],
+    withAi,
+    tableSize,
     phase: 'lobby',
     game: null,
     revision: 1,
@@ -43,9 +52,10 @@ export function addPlayer(room: RoomState, player: Identity): Result<RoomState> 
     return fail('Już siedzisz przy tym stole.');
   }
   if (room.phase === 'playing') return fail('Partia już trwa.');
-  if (room.players.length >= MAX_PLAYERS) return fail('Stół jest pełny (6 miejsc).');
+  const limit = room.withAi ? room.tableSize : MAX_PLAYERS;
+  if (room.players.length >= limit) return fail(room.withAi ? 'Stół jest pełny.' : 'Stół jest pełny (6 miejsc).');
   const next = touch(room);
-  next.players = [...room.players, { id: player.id, token: player.token, nick, ready: false }];
+  next.players = [...room.players, { id: player.id, token: player.token, nick, ready: false, ai: false }];
   return { ok: true, value: next };
 }
 
@@ -79,16 +89,41 @@ export function leaveLobby(room: RoomState, playerId: string): Result<RoomState>
   return { ok: true, value: next };
 }
 
+export function setTableSize(room: RoomState, playerId: string, seats: number): Result<RoomState> {
+  if (!room.withAi) return fail('Ten stół jest tylko dla ludzi.');
+  if (playerId !== room.hostId) return fail('Tylko gospodarz ustawia stół.');
+  if (room.phase !== 'lobby') return fail('Rozmiar stołu zmienia się przed startem.');
+  if (!Number.isInteger(seats) || seats < MIN_PLAYERS || seats > MAX_PLAYERS) return fail('Stół ma od 3 do 6 miejsc.');
+  if (seats < room.players.length) return fail('Przy stole siedzi już więcej osób.');
+  const next = touch(room);
+  next.tableSize = seats;
+  return { ok: true, value: next };
+}
+
 export function startGame(room: RoomState, playerId: string, rng: () => number): Result<RoomState> {
   if (playerId !== room.hostId) return fail('Tylko gospodarz zaczyna.');
   if (room.phase !== 'lobby' || room.game) return fail('Partia już trwa.');
-  if (room.players.length < MIN_PLAYERS) return fail('Potrzeba co najmniej 3 graczy.');
-  if (room.players.length > MAX_PLAYERS) return fail('Za dużo graczy.');
+  let players = room.players;
+  if (room.withAi) {
+    if (room.players.length > room.tableSize) return fail('Za dużo graczy.');
+    players = room.players.slice();
+    let count = 1;
+    while (players.length < room.tableSize) {
+      const id = `ai-${room.code}-${count}`;
+      players.push({ id, token: `ai-${room.code}-${count}`, nick: `Komputer ${count}`, ready: true, ai: true });
+      count += 1;
+    }
+  } else if (room.players.length < MIN_PLAYERS) {
+    return fail('Potrzeba co najmniej 3 graczy.');
+  }
+  if (players.length < MIN_PLAYERS) return fail('Potrzeba co najmniej 3 graczy.');
+  if (players.length > MAX_PLAYERS) return fail('Za dużo graczy.');
   const game = dealGame(
-    room.players.map((seat) => ({ id: seat.id, nick: seat.nick })),
+    players.map((seat) => ({ id: seat.id, nick: seat.nick })),
     rng,
   );
   const next = touch(room);
+  next.players = players;
   next.phase = 'playing';
   next.game = game;
   return { ok: true, value: next };

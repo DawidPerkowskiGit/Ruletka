@@ -144,6 +144,20 @@ input {
 
 .row > button, .join > button, .room-link, .home > button { flex: 1 1 160px; }
 
+.ai-setup { margin: 12px 0; }
+
+.ai-setup h2 { margin: 0 0 6px; font-size: 18px; }
+
+.ai-setup p { margin: 0 0 8px; }
+
+.ai-setup .row > span, .home .row > span {
+  flex: 0 0 auto;
+  min-width: 5.5em;
+  text-align: center;
+  font-weight: 800;
+  line-height: 44px;
+}
+
 .open-list { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
 
 .room-link { text-align: left; }
@@ -293,21 +307,45 @@ input {
 
 .col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 
-.hand-tools {
+.more {
+  position: relative;
+  flex-shrink: 0;
   display: flex;
-  gap: 8px;
-  padding: 0 2px;
+  padding: 0 10px;
 }
 
-.hand-tools button {
-  flex: 1 1 120px;
+.more > button {
   min-height: 44px;
   background: transparent;
   color: var(--cream);
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.hand-tools button[aria-pressed='true'] {
+.more-list {
+  position: absolute;
+  left: 10px;
+  bottom: calc(100% + 6px);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(240px, calc(100vw - 20px));
+  margin: 0;
+  padding: 8px;
+  border-radius: 12px;
+  background: #143526;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.more-list button {
+  width: 100%;
+  min-height: 44px;
+  background: transparent;
+  color: var(--cream);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.more-list button[aria-pressed='true'] {
   background: var(--gold);
   color: #2a2108;
   border-color: transparent;

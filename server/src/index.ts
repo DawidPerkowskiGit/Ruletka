@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   addPlayer,
   applyAction,
+  chooseAction,
   createRoom,
   isCard,
   kickPlayer,
@@ -16,6 +17,7 @@ import {
   rematch,
   resignGame,
   setReady,
+  setTableSize,
   startGame,
   timeoutPlayer,
   type Card,
@@ -39,6 +41,7 @@ interface Live {
   room: RoomState;
   conns: Map<string, WebSocket>;
   timers: Map<string, ReturnType<typeof setTimeout>>;
+  aiTimer: ReturnType<typeof setTimeout> | null;
 }
 
 const rooms = new Map<string, Live>();
@@ -62,6 +65,32 @@ function broadcast(live: Live): void {
   for (const [id, ws] of live.conns) {
     send(ws, { type: 'view', view: project(live.room, id, ids) });
   }
+  scheduleAi(live);
+}
+
+const AI_MS = 700;
+
+function scheduleAi(live: Live): void {
+  if (live.aiTimer) clearTimeout(live.aiTimer);
+  live.aiTimer = null;
+  const game = live.room.game;
+  if (!game || game.phase !== 'playing' || game.currentIndex === null) return;
+  const current = game.players[game.currentIndex];
+  if (!current || !live.room.players.some((player) => player.id === current.id && player.ai)) return;
+  const playerId = current.id;
+  live.aiTimer = setTimeout(() => {
+    live.aiTimer = null;
+    const now = live.room.game;
+    if (!now || now.phase !== 'playing' || now.currentIndex === null) return;
+    const seat = now.players[now.currentIndex];
+    if (!seat || seat.id !== playerId) return;
+    const action = chooseAction(now, playerId);
+    if (!action) return;
+    const played = applyAction(now, playerId, action);
+    if (!played.ok) return;
+    live.room = { ...live.room, game: played.value, phase: played.value.phase, revision: live.room.revision + 1 };
+    broadcast(live);
+  }, AI_MS);
 }
 
 function pushLists(): void {
@@ -183,6 +212,11 @@ function parseMessage(value: unknown): ClientMessage | null {
       if ((message.visibility !== 'public' && message.visibility !== 'private') || typeof message.nick !== 'string' || message.nick.length > 40 || !isToken(message.token)) {
         return null;
       }
+      if (message.ai === true) {
+        const seats = message.seats === undefined ? 3 : message.seats;
+        if (typeof seats !== 'number' || !Number.isInteger(seats) || seats < 3 || seats > 6) return null;
+        return { type: 'create', nick: message.nick, visibility: message.visibility, token: message.token, ai: true, seats };
+      }
       return { type: 'create', nick: message.nick, visibility: message.visibility, token: message.token };
     case 'join':
       if (!isCode(message.code) || typeof message.nick !== 'string' || message.nick.length > 40 || !isToken(message.token)) return null;
@@ -193,6 +227,9 @@ function parseMessage(value: unknown): ClientMessage | null {
     case 'kick':
       if (typeof message.playerId !== 'string' || message.playerId.length > 80) return null;
       return { type: 'kick', playerId: message.playerId };
+    case 'setTable':
+      if (typeof message.seats !== 'number' || !Number.isInteger(message.seats)) return null;
+      return { type: 'setTable', seats: message.seats };
     case 'action': {
       const action = parseAction(message.action);
       return action ? { type: 'action', action } : null;
@@ -251,12 +288,18 @@ function handle(ws: WebSocket, message: ClientMessage): void {
     }
     const code = makeCode();
     const id = randomUUID();
-    const created = createRoom({ code, visibility: message.visibility, host: { id, token: message.token, nick: message.nick } });
+    const created = createRoom({
+      code,
+      visibility: message.visibility,
+      host: { id, token: message.token, nick: message.nick },
+      withAi: message.ai === true,
+      tableSize: message.seats,
+    });
     if (!created.ok) {
       send(ws, { type: 'error', message: created.error });
       return;
     }
-    const live: Live = { room: created.value, conns: new Map(), timers: new Map() };
+    const live: Live = { room: created.value, conns: new Map(), timers: new Map(), aiTimer: null };
     rooms.set(code, live);
     welcome(ws, live, id, message.token);
     return;
@@ -309,6 +352,10 @@ function handle(ws: WebSocket, message: ClientMessage): void {
     commit(ws, live, startGame(live.room, playerId, rng));
     return;
   }
+  if (message.type === 'setTable') {
+    commit(ws, live, setTableSize(live.room, playerId, message.seats));
+    return;
+  }
   if (message.type === 'rematch') {
     commit(ws, live, rematch(live.room, playerId, rng));
     return;
@@ -347,8 +394,10 @@ function handle(ws: WebSocket, message: ClientMessage): void {
     release(ws, live, playerId);
     live.room = result.value;
     send(ws, { type: 'left' });
-    if (live.room.players.length === 0) rooms.delete(live.room.code);
-    else broadcast(live);
+    if (live.room.players.length === 0) {
+      if (live.aiTimer) clearTimeout(live.aiTimer);
+      rooms.delete(live.room.code);
+    } else broadcast(live);
     pushLists();
     return;
   }

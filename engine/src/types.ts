@@ -61,6 +61,7 @@ export interface RoomPlayer {
   token: string;
   nick: string;
   ready: boolean;
+  ai?: boolean;
 }
 
 export interface RoomState {
@@ -68,6 +69,8 @@ export interface RoomState {
   visibility: 'public' | 'private';
   hostId: string;
   players: RoomPlayer[];
+  withAi: boolean;
+  tableSize: number;
   phase: 'lobby' | 'playing' | 'finished';
   game: GameState | null;
   revision: number;
@@ -100,6 +103,7 @@ export interface SeatView {
   exitedPlace: number | null;
   dropped: boolean;
   isLoser: boolean;
+  ai: boolean;
 }
 
 export interface PlayerView {
@@ -107,6 +111,8 @@ export interface PlayerView {
   visibility: 'public' | 'private';
   hostId: string;
   youId: string;
+  withAi: boolean;
+  tableSize: number;
   phase: 'lobby' | 'playing' | 'finished';
   seats: SeatView[];
   centerTop: PublicCard | null;
@@ -135,11 +141,12 @@ export interface PublicRoom {
 export type ClientMessage =
   | { type: 'ping' }
   | { type: 'list' }
-  | { type: 'create'; nick: string; visibility: 'public' | 'private'; token: string }
+  | { type: 'create'; nick: string; visibility: 'public' | 'private'; token: string; ai?: boolean; seats?: number }
   | { type: 'join'; code: string; nick: string; token: string }
   | { type: 'rejoin'; code: string; token: string }
   | { type: 'ready' }
   | { type: 'start' }
+  | { type: 'setTable'; seats: number }
   | { type: 'kick'; playerId: string }
   | { type: 'leave' }
   | { type: 'rematch' }
