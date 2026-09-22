@@ -209,6 +209,10 @@ export function App() {
         </p>
       ) : null}
       {body}
+      <div className="turn-phone" role="status">
+        <div className="turn-phone-icon" aria-hidden="true" />
+        <p>Obróć telefon pionowo</p>
+      </div>
     </div>
   );
 }
