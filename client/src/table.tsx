@@ -415,7 +415,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
             <span key={seat.id} data-player-id={seat.id} data-nick={seat.nick} data-hand-count={seat.handCount} />
           ))}
         </div>
-        <section className="center" data-testid="center" data-fly-id="center">
+        <section className="center" data-testid="center" data-fly-id="center" data-center-count={view.centerCount} data-burned={view.burnedCount}>
           <div className={`pile${pileOpen ? ' open' : ''}`} ref={pileRef}>
             {view.centerTop ? (
               <button
@@ -435,33 +435,42 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
                 ) : null}
               </button>
             ) : (
-              <div className="empty-pile" data-testid="center-top" data-fly-id="pile" data-rank="">
+              <button
+                type="button"
+                className="empty-pile"
+                data-testid="center-top"
+                data-fly-id="pile"
+                data-rank=""
+                aria-expanded={pileOpen}
+                aria-label="Pokaż stos"
+                onClick={() => setPileOpen((open) => !open)}
+              >
                 Pusty środek
-              </div>
+              </button>
             )}
-            {view.center.length > 0 ? (
-              <ol className="pile-list" data-testid="pile-list">
-                {pileRows(view.center).map((row) => (
-                  <li key={row.rank}>
-                    <span className="pile-rank">{row.rank}</span>
-                    <span className="pile-suits">
-                      {row.suits.map((card) => (
-                        <span key={card.id} className={isRed(card.suit) ? 'red' : ''} data-testid={`pile-${card.id}`} data-suit={card.suit}>
-                          {suitSymbol(card.suit)}
-                        </span>
-                      ))}
-                    </span>
-                    {row.top ? <span className="pile-tag">wierzch</span> : null}
-                  </li>
-                ))}
-              </ol>
-            ) : null}
-          </div>
-          <div className="center-meta">
-            <span data-testid="center-count">Stos: {view.centerCount}</span>
-            <span data-testid="under">Pod spodem: {Math.max(0, view.centerCount - 1)}</span>
-            <span data-testid="burned">Spalone: {view.burnedCount}</span>
-            {view.outCount > 0 ? <span>Poza grą: {view.outCount}</span> : null}
+            <div className="pile-list" data-testid="pile-list">
+              <p className="pile-stats">
+                <span data-testid="center-count">Na stosie: {view.centerCount}</span>
+                <span data-testid="burned">Spalone: {view.burnedCount}</span>
+              </p>
+              {view.center.length > 0 ? (
+                <ol>
+                  {pileRows(view.center).map((row) => (
+                    <li key={row.rank}>
+                      <span className="pile-rank">{row.rank}</span>
+                      <span className="pile-suits">
+                        {row.suits.map((card) => (
+                          <span key={card.id} className={isRed(card.suit) ? 'red' : ''} data-testid={`pile-${card.id}`} data-suit={card.suit}>
+                            {suitSymbol(card.suit)}
+                          </span>
+                        ))}
+                      </span>
+                      {row.top ? <span className="pile-tag">wierzch</span> : null}
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </div>
           </div>
           {view.reveal && view.reveal.outcome !== 'play' ? (
             <div className="reveal" data-testid="reveal">
