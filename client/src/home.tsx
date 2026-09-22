@@ -27,18 +27,22 @@ export function Home({ nick, urlCode, rooms, pending, onNick, send }: HomeProps)
           onChange={(event) => onNick(event.target.value)}
         />
       </label>
-      <div className="row">
-        <button type="button" data-testid="create-public" disabled={!nickOk || pending} onClick={() => send({ type: 'create', nick: nick.trim(), visibility: 'public', token: '' }, true)}>
-          Stół publiczny
-        </button>
-        <button type="button" data-testid="create-private" disabled={!nickOk || pending} onClick={() => send({ type: 'create', nick: nick.trim(), visibility: 'private', token: '' }, true)}>
-          Stół prywatny
-        </button>
-      </div>
-      <section className="ai-setup">
-        <h2>Gra z komputerem</h2>
-        <p>Ustal, ile osób siada do stołu. Znajomi mogą wejść kodem, a wolne miejsca przy starcie zajmie komputer.</p>
+      <section className="panel">
+        <h2>Nowy stół</h2>
+        <p>Tylko ludzie. Publiczny widać na liście, prywatny zna kto ma kod.</p>
         <div className="row">
+          <button type="button" data-testid="create-public" disabled={!nickOk || pending} onClick={() => send({ type: 'create', nick: nick.trim(), visibility: 'public', token: '' }, true)}>
+            Stół publiczny
+          </button>
+          <button type="button" data-testid="create-private" disabled={!nickOk || pending} onClick={() => send({ type: 'create', nick: nick.trim(), visibility: 'private', token: '' }, true)}>
+            Stół prywatny
+          </button>
+        </div>
+      </section>
+      <section className="panel">
+        <h2>Z komputerem</h2>
+        <p>Ustal wielkość stołu. Wolne miejsca przy starcie zajmie komputer, a znajomi mogą wejść kodem.</p>
+        <div className="stepper">
           <button type="button" data-testid="table-dec" aria-label="Mniej graczy" disabled={!nickOk || pending || tableSize <= 3} onClick={() => setTableSize((size) => size - 1)}>
             −
           </button>
@@ -56,8 +60,12 @@ export function Home({ nick, urlCode, rooms, pending, onNick, send }: HomeProps)
           Stół z komputerem
         </button>
       </section>
-      <JoinBox nick={nick} urlCode={urlCode} pending={pending} send={send} />
-      <section className="open-list">
+      <section className="panel">
+        <h2>Dołącz kodem</h2>
+        <p>Stół ludzi albo z komputerem — wystarczy kod od gospodarza.</p>
+        <JoinBox nick={nick} urlCode={urlCode} pending={pending} send={send} />
+      </section>
+      <section className="panel open-list">
         <h2>Otwarte stoły</h2>
         {rooms.length === 0 ? <p>Nikogo nie ma na liście.</p> : null}
         {rooms.map((room) => (
