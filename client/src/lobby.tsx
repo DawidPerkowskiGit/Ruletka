@@ -51,7 +51,7 @@ export function Lobby({ view, pending, send }: LobbyProps) {
           : `Siedzą ${view.seats.length}. Start od 3, maksymalnie 6.`}
       </p>
       {host && view.withAi ? (
-        <div className="row">
+        <div className="stepper">
           <button
             type="button"
             data-testid="table-dec"
