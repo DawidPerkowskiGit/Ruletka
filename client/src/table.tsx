@@ -52,17 +52,15 @@ function confirmLabel(action: GameAction | null, pending: boolean): string {
   return 'Połóż';
 }
 
-function pileRows(cards: readonly PublicCard[]): { rank: string; top: boolean; suits: PublicCard[] }[] {
-  const topId = cards.at(-1)?.id;
-  const rows: { rank: string; top: boolean; suits: PublicCard[] }[] = [];
+function pileRows(cards: readonly PublicCard[]): { rank: string; suits: PublicCard[] }[] {
+  const rows: { rank: string; suits: PublicCard[] }[] = [];
   for (const card of cards) {
     let row = rows.find((item) => item.rank === card.rank);
     if (!row) {
-      row = { rank: card.rank, top: false, suits: [] };
+      row = { rank: card.rank, suits: [] };
       rows.push(row);
     }
     row.suits.push(card);
-    if (card.id === topId) row.top = true;
   }
   return rows;
 }
@@ -465,7 +463,6 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
                           </span>
                         ))}
                       </span>
-                      {row.top ? <span className="pile-tag">wierzch</span> : null}
                     </li>
                   ))}
                 </ol>

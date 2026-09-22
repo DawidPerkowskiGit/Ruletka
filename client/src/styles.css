@@ -641,7 +641,7 @@ button.card { min-width: 56px; min-height: 80px; }
 .pile-list li {
   min-height: 44px;
   display: grid;
-  grid-template-columns: 2.4em 1fr auto;
+  grid-template-columns: 2.4em 1fr;
   align-items: center;
   gap: 8px;
   padding: 0 10px;
@@ -660,8 +660,6 @@ button.card { min-width: 56px; min-height: 80px; }
 .pile-suits .red { color: #ff8d8d; }
 
 .pile-rank, .pile-suit { font-weight: 800; font-size: 20px; }
-
-.pile-tag { font-size: 12px; letter-spacing: 0.04em; opacity: 0.8; }
 
 .chip {
   display: inline-flex;
