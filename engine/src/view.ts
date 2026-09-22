@@ -21,7 +21,7 @@ export function project(room: RoomState, viewerId: string, connected: ReadonlySe
       id: player.id,
       nick: player.nick,
       ready: player.ready,
-      connected: connected.has(player.id),
+      connected: player.ai === true || connected.has(player.id),
       handCount: seat ? seat.hand.length : 0,
       hand: seat && own ? seat.hand.map(pub) : null,
       faceUp: seat ? seat.faceUp.map((card) => (card ? pub(card) : null)) : [null, null, null],
@@ -29,6 +29,7 @@ export function project(room: RoomState, viewerId: string, connected: ReadonlySe
       exitedPlace: seat?.exitedPlace ?? null,
       dropped: seat?.dropped ?? false,
       isLoser: game?.loserId === player.id,
+      ai: player.ai === true,
     };
   });
 
@@ -40,6 +41,8 @@ export function project(room: RoomState, viewerId: string, connected: ReadonlySe
     visibility: room.visibility,
     hostId: room.hostId,
     youId: viewerId,
+    withAi: room.withAi,
+    tableSize: room.tableSize,
     phase: room.phase,
     seats,
     centerTop: game && game.center.length > 0 ? pub(game.center[game.center.length - 1]!) : null,

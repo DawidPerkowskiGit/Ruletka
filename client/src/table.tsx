@@ -114,9 +114,10 @@ function inPlay(seat: SeatView): boolean {
 
 function seatNote(seat: SeatView, playing: boolean): string {
   const parts = [`${seat.handCount} w ręce`];
+  if (seat.ai) parts.push('komputer');
   if (seat.exitedPlace) parts.push(`miejsce ${seat.exitedPlace}`);
   if (seat.dropped) parts.push('odpadł');
-  else if (playing && !seat.connected) parts.push('rozłączony');
+  else if (playing && !seat.connected && !seat.ai) parts.push('rozłączony');
   if (seat.isLoser) parts.push('przegrywa');
   return parts.join(' · ');
 }
@@ -144,6 +145,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
   const [held, setHeld] = useState<ReadonlySet<string>>(new Set());
   const [cover, setCover] = useState<PublicCard | null>(null);
   const [armed, setArmed] = useState<null | 'end' | 'restart' | 'resign'>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const prevView = useRef(view);
   const positions = useRef<Map<string, Box>>(new Map());
   const flightTimer = useRef<number | null>(null);
@@ -467,16 +469,6 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
               );
             })}
           </div>
-          {hand.length > 0 ? (
-            <div className="hand-tools">
-              <button type="button" data-testid="hand-mode" aria-pressed={autoSort} onClick={() => setAutoSort((value) => !value)}>
-                {autoSort ? 'Auto' : 'Ręcznie'}
-              </button>
-              <button type="button" data-testid="hand-sort" onClick={sortNow}>
-                Sortuj
-              </button>
-            </div>
-          ) : null}
           <div
             className="hand"
             data-testid="hand"
@@ -514,10 +506,23 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
             })}
           </div>
         </section>
-        {view.phase !== 'finished' ? (
-          <>
-            {hostPlaying || canResign ? (
-              <div className="table-tools">
+        {view.phase !== 'finished' && (hand.length > 0 || hostPlaying) ? (
+          <div className="more">
+            <button type="button" data-testid="more" aria-expanded={moreOpen} onClick={() => setMoreOpen((open) => !open)}>
+              {moreOpen ? 'Zamknij' : 'Więcej'}
+            </button>
+            {moreOpen ? (
+              <div className="more-list">
+                {hand.length > 0 ? (
+                  <>
+                    <button type="button" data-testid="hand-mode" aria-pressed={autoSort} onClick={() => setAutoSort((value) => !value)}>
+                      {autoSort ? 'Auto' : 'Ręcznie'}
+                    </button>
+                    <button type="button" data-testid="hand-sort" onClick={sortNow}>
+                      Sortuj
+                    </button>
+                  </>
+                ) : null}
                 {hostPlaying ? (
                   <button type="button" data-testid="end-game" disabled={pending} onClick={() => arm('end', { type: 'endGame' })}>
                     {armed === 'end' ? 'Potwierdź zakończenie' : 'Zakończ grę'}
@@ -528,13 +533,19 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
                     {armed === 'restart' ? 'Potwierdź restart' : 'Zrestartuj grę'}
                   </button>
                 ) : null}
-                {canResign ? (
-                  <button type="button" className="resign" data-testid="resign" disabled={pending} onClick={() => arm('resign', { type: 'resign' })}>
-                    {armed === 'resign' ? 'Potwierdź poddanie' : 'Poddaj się'}
-                  </button>
-                ) : null}
               </div>
             ) : null}
+          </div>
+        ) : null}
+        {view.phase !== 'finished' && canResign ? (
+          <div className="table-tools">
+            <button type="button" className="resign" data-testid="resign" disabled={pending} onClick={() => arm('resign', { type: 'resign' })}>
+              {armed === 'resign' ? 'Potwierdź poddanie' : 'Poddaj się'}
+            </button>
+          </div>
+        ) : null}
+        {view.phase !== 'finished' ? (
+          <>
             <p className="hint" data-testid="hint">
               {hint}
             </p>

@@ -12,7 +12,7 @@ export function Lobby({ view, pending, send }: LobbyProps) {
   const host = view.youId === view.hostId;
   return (
     <main className="home">
-      <p className="kicker">{view.visibility === 'private' ? 'Stół prywatny' : 'Stół publiczny'}</p>
+      <p className="kicker">{view.withAi ? 'Stół z komputerem' : view.visibility === 'private' ? 'Stół prywatny' : 'Stół publiczny'}</p>
       <h1 data-testid="code">{view.code}</h1>
       <p>{view.visibility === 'private' ? 'Tego stołu nie ma na liście. Wejdzie tylko kto zna kod.' : 'Stół widać na liście otwartych gier.'}</p>
       <label className="field">
@@ -33,8 +33,9 @@ export function Lobby({ view, pending, send }: LobbyProps) {
             <span>
               {seat.nick}
               {seat.id === view.hostId ? ' · gospodarz' : ''}
+              {seat.ai ? ' · komputer' : ''}
               {seat.ready ? ' · gotowy' : ''}
-              {!seat.connected ? ' · rozłączony' : ''}
+              {!seat.connected && !seat.ai ? ' · rozłączony' : ''}
             </span>
             {host && seat.id !== view.youId ? (
               <button type="button" data-testid={`kick-${seat.id}`} disabled={pending} onClick={() => send({ type: 'kick', playerId: seat.id }, true)}>
@@ -45,14 +46,39 @@ export function Lobby({ view, pending, send }: LobbyProps) {
         ))}
       </ul>
       <p data-testid="seat-count">
-        Siedzą {view.seats.length}. Start od 3, maksymalnie 6.
+        {view.withAi
+          ? `Stół na ${view.tableSize} ${view.tableSize >= 5 ? 'osób' : 'osoby'}. Komputery przy starcie: ${Math.max(0, view.tableSize - view.seats.length)}.`
+          : `Siedzą ${view.seats.length}. Start od 3, maksymalnie 6.`}
       </p>
+      {host && view.withAi ? (
+        <div className="row">
+          <button
+            type="button"
+            data-testid="table-dec"
+            aria-label="Mniej graczy"
+            disabled={pending || view.tableSize <= Math.max(3, view.seats.length)}
+            onClick={() => send({ type: 'setTable', seats: view.tableSize - 1 }, true)}
+          >
+            −
+          </button>
+          <span data-testid="table-size">{view.tableSize} {view.tableSize >= 5 ? 'osób' : 'osoby'}</span>
+          <button
+            type="button"
+            data-testid="table-inc"
+            aria-label="Więcej graczy"
+            disabled={pending || view.tableSize >= 6}
+            onClick={() => send({ type: 'setTable', seats: view.tableSize + 1 }, true)}
+          >
+            +
+          </button>
+        </div>
+      ) : null}
       <div className="row">
         <button type="button" data-testid="ready" disabled={pending} onClick={() => send({ type: 'ready' }, true)}>
           {me?.ready ? 'Cofnij gotowość' : 'Gotowy'}
         </button>
         {host ? (
-          <button type="button" data-testid="start" disabled={pending || view.seats.length < 3} onClick={() => send({ type: 'start' }, true)}>
+          <button type="button" data-testid="start" disabled={pending || (view.withAi ? view.seats.length > view.tableSize : view.seats.length < 3)} onClick={() => send({ type: 'start' }, true)}>
             Start
           </button>
         ) : (
