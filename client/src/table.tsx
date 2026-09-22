@@ -362,14 +362,8 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
                   const card = seat.faceUp[index];
                   return (
                     <div className="stack" key={index}>
-                      {slot === 'back' ? <span className="mini back" data-fly-id={`down-${seat.id}-${index}`} /> : <span className="mini ghost" />}
-                      {card ? (
-                        <span className={`mini face${card.suit === 'hearts' || card.suit === 'diamonds' ? ' red' : ''}`} data-rank={card.rank} data-fly-id={`card-${card.id}`}>
-                          {card.rank}
-                        </span>
-                      ) : (
-                        <span className="mini ghost" />
-                      )}
+                      {slot === 'back' ? <CardBack flyId={`down-${seat.id}-${index}`} /> : <div className="card ghost" />}
+                      {card ? <PlayingCard card={card} flyId={`card-${card.id}`} /> : <div className="card ghost" />}
                     </div>
                   );
                 })}

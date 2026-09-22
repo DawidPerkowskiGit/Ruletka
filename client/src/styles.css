@@ -384,9 +384,37 @@ input {
 }
 
 .table-slots .stack {
-  width: 22px;
-  aspect-ratio: 22 / 36;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  aspect-ratio: 64 / 110.4;
+  container-type: inline-size;
 }
+
+.table-slots .stack > .card {
+  border-radius: 14cqw;
+  padding: 6cqw;
+  box-shadow: 0 1.2cqw 2.4cqw rgba(0, 0, 0, 0.28);
+}
+
+.table-slots .stack > .card.back {
+  box-shadow: inset 0 0 0 1px rgba(243, 230, 192, 0.35), 0 1.2cqw 2.4cqw rgba(0, 0, 0, 0.28);
+}
+
+.table-slots .corner {
+  top: 4cqw;
+  left: 5cqw;
+  font-size: 20cqw;
+}
+
+.table-slots .corner.bottom {
+  right: 6cqw;
+  bottom: 5cqw;
+}
+
+.table-slots .rank-10 .corner { font-size: 17cqw; }
+
+.table-slots .pips { font-size: 36cqw; }
 
 .my-table .stack {
   width: 64px;
@@ -788,8 +816,6 @@ button.take { background: var(--gold); color: #2a2108; }
   .seat-long { display: none; }
   .seat-short { display: inline; flex: none; }
   .table-slots { width: 100%; gap: 2px; }
-  .table-slots .stack { flex: 1 1 0; width: auto; min-width: 0; }
-  .table-slots .mini { font-size: 9px; }
   .my-table { gap: 6px; }
   .my-table .stack { width: 48px; flex-basis: 48px; aspect-ratio: 48 / 81.6; }
   .my-table .stack > .card { padding: 2px; border-radius: 8px; }
