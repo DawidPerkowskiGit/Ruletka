@@ -79,6 +79,8 @@ function FlyingCard({ flight }: { flight: Flight }) {
     const tick = (now: number) => {
       const raw = Math.min(1, Math.max(0, (now - startAt) / flight.duration));
       const t = 1 - (1 - raw) ** 3;
+      node.style.width = `${flight.from.w + (flight.to.w - flight.from.w) * t}px`;
+      node.style.height = `${flight.from.h + (flight.to.h - flight.from.h) * t}px`;
       node.style.transform = `translate3d(${dx * t}px, ${dy * t}px, 0)`;
       node.style.opacity = flight.fade ? String(1 - t) : '1';
       if (raw < 1) frame = requestAnimationFrame(tick);
@@ -384,6 +386,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
               <button
                 type="button"
                 className="pile-hit"
+                data-fly-id="pile"
                 data-testid="pile-toggle"
                 aria-expanded={pileOpen}
                 aria-label="Pokaż karty na kupce"
@@ -397,7 +400,7 @@ export function Table({ view, pending, logOpen, send }: TableProps) {
                 ) : null}
               </button>
             ) : (
-              <div className="empty-pile" data-testid="center-top" data-rank="">
+              <div className="empty-pile" data-testid="center-top" data-fly-id="pile" data-rank="">
                 Pusty środek
               </div>
             )}

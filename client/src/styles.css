@@ -484,8 +484,8 @@ button.card { min-width: 56px; min-height: 80px; }
 .pile-hit {
   position: relative;
   padding: 0;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 0;
+  min-height: 0;
   background: transparent;
   border-radius: 10px;
   box-shadow: none;
@@ -685,7 +685,30 @@ button.take { background: var(--gold); color: #2a2108; }
   .hand { min-height: 96px; }
   .fan-slot { height: 80px; }
   .fan-slot:last-child { width: 56px; }
-  .center .card, .reveal .card { width: 68px; height: 96px; }
+  .center { min-height: 132px; }
+  .center .card, .reveal .card, .empty-pile { width: 68px; height: 96px; }
+  .opponents { gap: 6px; padding: 4px 8px 6px; }
+  .seat {
+    width: max(92px, calc((100% - 48px) / 3));
+    padding: 4px 4px 5px;
+  }
+  .seat header { margin-bottom: 2px; font-size: 12px; line-height: 1.15; }
+  .seat header span { font-size: 11px; }
+  .mini { width: 20px; height: 28px; font-size: 10px; }
+  .mini-row { gap: 3px; margin-top: 2px; }
+  .my-table { gap: 6px; }
+  .my-table .col { gap: 3px; }
+  .my-table .card,
+  .my-table button.card {
+    width: 48px;
+    height: 68px;
+    min-width: 48px;
+    min-height: 68px;
+    padding: 2px;
+    border-radius: 8px;
+  }
+  .my-table .pips { font-size: 18px; }
+  .my-table .corner { font-size: 11px; }
 }
 
 @media (min-width: 960px) {

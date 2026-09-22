@@ -52,8 +52,13 @@ function shift(box: Box, index: number): Box {
 }
 
 function cardSized(box: Box, sample: Box): Box {
+  const portrait = box.h >= box.w * 1.15;
   const close =
-    box.w >= sample.w * 0.75 && box.w <= sample.w * 1.35 && box.h >= sample.h * 0.75 && box.h <= sample.h * 1.35;
+    portrait &&
+    box.w >= sample.w * 0.75 &&
+    box.w <= sample.w * 1.35 &&
+    box.h >= sample.h * 0.75 &&
+    box.h <= sample.h * 1.35;
   if (close) return box;
   return {
     x: box.x + (box.w - sample.w) / 2,
@@ -65,12 +70,15 @@ function cardSized(box: Box, sample: Box): Box {
 
 function pileBox(prev: PlayerView, map: ReadonlyMap<string, Box>): Box | null {
   const top = prev.center.at(-1);
-  if (top && map.has(`card-${top.id}`)) return map.get(`card-${top.id}`)!;
+  const card = top ? map.get(`card-${top.id}`) : undefined;
+  if (card && card.h >= card.w * 1.15) return card;
+  const pile = map.get('pile');
+  if (pile && pile.h >= pile.w * 1.15) return pile;
   const section = map.get('center');
   if (!section) return null;
-  const w = Math.min(72, section.w);
-  const h = Math.min(104, section.h);
-  return { x: section.x + Math.max(0, (section.w - w) / 2), y: section.y + 8, w, h };
+  const w = 68;
+  const h = 96;
+  return { x: section.x + (section.w - w) / 2, y: section.y + Math.max(0, (section.h - h) / 2), w, h };
 }
 
 function vanish(box: Box): Box {
