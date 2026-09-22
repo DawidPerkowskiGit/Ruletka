@@ -1,5 +1,5 @@
 import { sanitizeNick } from './cards.js';
-import { dealGame, dropOut } from './game.js';
+import { abortGame, dealGame, dropOut, resign } from './game.js';
 import { MAX_PLAYERS, MIN_PLAYERS, type PublicRoom, type Result, type RoomState } from './types.js';
 
 export interface Identity {
@@ -94,9 +94,30 @@ export function startGame(room: RoomState, playerId: string, rng: () => number):
   return { ok: true, value: next };
 }
 
+export function endGame(room: RoomState, playerId: string): Result<RoomState> {
+  if (playerId !== room.hostId) return fail('Tylko gospodarz kończy partię.');
+  if (room.phase !== 'playing' || !room.game) return fail('Nie ma partii do zakończenia.');
+  const game = abortGame(room.game);
+  if (!game.ok) return game;
+  const next = touch(room);
+  next.game = game.value;
+  next.phase = 'finished';
+  return { ok: true, value: next };
+}
+
+export function resignGame(room: RoomState, playerId: string): Result<RoomState> {
+  if (room.phase !== 'playing' || !room.game) return fail('Partia już się skończyła.');
+  const game = resign(room.game, playerId);
+  if (!game.ok) return game;
+  const next = touch(room);
+  next.game = game.value;
+  next.phase = 'finished';
+  return { ok: true, value: next };
+}
+
 export function rematch(room: RoomState, playerId: string, rng: () => number): Result<RoomState> {
   if (playerId !== room.hostId) return fail('Tylko gospodarz rozdaje jeszcze raz.');
-  if (room.phase !== 'finished') return fail('Partia jeszcze trwa.');
+  if (room.phase === 'lobby' || !room.game) return fail('Najpierw trzeba zacząć partię.');
   if (room.players.length < MIN_PLAYERS) return fail('Potrzeba co najmniej 3 graczy.');
   const game = dealGame(
     room.players.map((seat) => ({ id: seat.id, nick: seat.nick })),

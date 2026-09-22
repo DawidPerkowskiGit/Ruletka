@@ -15,6 +15,7 @@ export type GameAction =
   | { type: 'playWayB'; handCardIds: string[]; faceUpId: string }
   | { type: 'playFaceUp'; cardId: string }
   | { type: 'playFaceDown'; slot: number }
+  | { type: 'takeFaceDown'; slot: number }
   | { type: 'takePile' };
 
 export interface Seat {
@@ -32,9 +33,12 @@ export interface Reveal {
   outcome: 'low' | 'burn' | 'play';
 }
 
+export type LogPart = { type: 'text'; text: string } | { type: 'card'; card: PublicCard };
+
 export interface LogEntry {
   id: number;
   text: string;
+  parts?: LogPart[];
 }
 
 export interface GameState {
@@ -49,6 +53,7 @@ export interface GameState {
   loserId: string | null;
   log: LogEntry[];
   reveal: Reveal | null;
+  handNote: { playerId: string; card: Card } | null;
 }
 
 export interface RoomPlayer {
@@ -105,6 +110,7 @@ export interface PlayerView {
   phase: 'lobby' | 'playing' | 'finished';
   seats: SeatView[];
   centerTop: PublicCard | null;
+  center: PublicCard[];
   centerCount: number;
   burnedCount: number;
   outCount: number;
@@ -115,6 +121,7 @@ export interface PlayerView {
   legal: Legal;
   yourTurn: boolean;
   reveal: { card: PublicCard; outcome: Reveal['outcome'] } | null;
+  handNote: PublicCard | null;
   revision: number;
 }
 
@@ -136,6 +143,8 @@ export type ClientMessage =
   | { type: 'kick'; playerId: string }
   | { type: 'leave' }
   | { type: 'rematch' }
+  | { type: 'endGame' }
+  | { type: 'resign' }
   | { type: 'action'; action: GameAction };
 
 export type ServerMessage =

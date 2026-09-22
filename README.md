@@ -48,3 +48,9 @@ Heroku nie jest celem.
 Talia 52 kart, bez jokerów. Kolor nie liczy się do siły. As jest najwyższy. Piątka wchodzi na wszystko i wszystko wchodzi na piątkę, ale sama nie kasuje stosu. Jedna dziesiątka kasuje stos. Dokładnie cztery karty tej samej wartości naraz też kasują: albo cztery z ręki, albo dokładnie trzy z ręki plus jedna odkryta tej samej wartości. Dwie albo trzy karty w jednej turze są nielegalne.
 
 Najpierw schodzi ręka, potem odkryte, na końcu zakryte. Kto nie ma już kart, wychodzi. Ostatni z kartami przegrywa.
+
+Zaczyna gracz, który ma najniższą kartę. Przy tej samej wartości liczy się kolor: kier, pik, karo, trefl. Najniższa karta talii to 2 kier. Kolor nadal nie liczy się przy dokładaniu do stosu.
+
+Gdy zostały już tylko zakryte, można odsłonić kartę na stół albo wziąć ją do ręki. Wejście do ręki widzi tylko ten gracz. Potem gra z ręki jak zwykle, w tej samej turze.
+
+W swojej turze można wziąć kupkę ze środka zamiast położyć kartę. Najechanie albo stuknięcie w kupkę pokazuje, jakie karty na niej leżą.

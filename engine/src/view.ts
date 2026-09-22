@@ -43,6 +43,7 @@ export function project(room: RoomState, viewerId: string, connected: ReadonlySe
     phase: room.phase,
     seats,
     centerTop: game && game.center.length > 0 ? pub(game.center[game.center.length - 1]!) : null,
+    center: game ? game.center.map(pub) : [],
     centerCount: game?.center.length ?? 0,
     burnedCount: game?.burnedCount ?? 0,
     outCount: game?.outCount ?? 0,
@@ -57,6 +58,7 @@ export function project(room: RoomState, viewerId: string, connected: ReadonlySe
     legal: game ? legalActions(game, viewerId) : { ...EMPTY_LEGAL, quads: [] },
     yourTurn,
     reveal: game?.reveal ? { card: pub(game.reveal.card), outcome: game.reveal.outcome } : null,
+    handNote: game?.handNote && game.handNote.playerId === viewerId ? pub(game.handNote.card) : null,
     revision: room.revision,
   };
 }

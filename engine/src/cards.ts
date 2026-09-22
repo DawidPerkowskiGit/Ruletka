@@ -25,6 +25,13 @@ const SUIT_NAME: Record<Suit, string> = {
   spades: 'pik',
 };
 
+const OPEN_RANK: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+const OPEN_SUIT: Suit[] = ['hearts', 'spades', 'diamonds', 'clubs'];
+
+export function openingKey(card: Card): number {
+  return OPEN_RANK.indexOf(card.rank) * OPEN_SUIT.length + OPEN_SUIT.indexOf(card.suit);
+}
+
 export function createDeck(): Card[] {
   const deck: Card[] = [];
   for (const suit of SUITS) {

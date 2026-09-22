@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createRoom, addPlayer, kickPlayer, listPublic, startGame, timeoutPlayer } from './room.js';
-import { applyAction, dealGame, legalActions } from './game.js';
+import { createRoom, addPlayer, endGame, kickPlayer, listPublic, rematch, resignGame, startGame, timeoutPlayer } from './room.js';
+import { applyAction, dealGame, legalActions, lowestOpening, resign } from './game.js';
 import { project } from './view.js';
 import type { Card, GameState, Rank, Suit } from './types.js';
 
@@ -30,6 +30,7 @@ function state(partial: {
     loserId: null,
     log: [],
     reveal: null,
+    handNote: null,
   };
 }
 
@@ -44,6 +45,62 @@ const C = { id: 'c', nick: 'Celina' };
 const D = { id: 'd', nick: 'Darek' };
 const E = { id: 'e', nick: 'Ewa' };
 const F = { id: 'f', nick: 'Filip' };
+
+describe('otwarcie i kupka', () => {
+  it('zaczyna gracz z najniższą kartą: 2 kier, potem pik, karo, trefl', () => {
+    const hearts = lowestOpening([
+      seat('a', 'Ala', [card('2', 'spades')]),
+      seat('b', 'Bartek', [], [null, null, null], [card('2', 'hearts'), null, null]),
+      seat('c', 'Celina', [card('2', 'diamonds'), card('2', 'clubs')]),
+    ]);
+    expect(hearts.index).toBe(1);
+    expect(hearts.card.id).toBe('2-hearts');
+
+    const wine = lowestOpening([
+      seat('a', 'Ala', [card('2', 'clubs')]),
+      seat('b', 'Bartek', [card('2', 'diamonds')]),
+      seat('c', 'Celina', [card('3', 'hearts')], [card('2', 'spades'), null, null]),
+    ]);
+    expect(wine.index).toBe(2);
+    expect(wine.card.suit).toBe('spades');
+
+    const bell = lowestOpening([
+      seat('a', 'Ala', [card('2', 'clubs')]),
+      seat('b', 'Bartek', [card('2', 'diamonds')]),
+      seat('c', 'Celina', [card('4', 'hearts')]),
+    ]);
+    expect(bell.index).toBe(1);
+    expect(bell.card.suit).toBe('diamonds');
+  });
+
+  it('gracz może wziąć kupkę zamiast położyć kartę', () => {
+    const game = state({
+      players: [
+        seat('a', 'Ala', [card('A', 'hearts')]),
+        seat('b', 'Bartek', [card('9', 'spades')]),
+        seat('c', 'Celina', [card('8', 'diamonds')]),
+      ],
+      center: [card('7', 'spades'), card('8', 'clubs')],
+    });
+    const legal = legalActions(game, 'a');
+    expect(legal.singles).toContain('A-hearts');
+    expect(legal.takePile).toBe(true);
+    const taken = must(applyAction(game, 'a', { type: 'takePile' }));
+    expect(taken.center).toEqual([]);
+    expect(taken.players[0]!.hand.map((item) => item.id)).toEqual(['A-hearts', '7-spades', '8-clubs']);
+    expect(taken.currentIndex).toBe(1);
+
+    const empty = state({
+      players: [
+        seat('a', 'Ala', [card('A', 'hearts')]),
+        seat('b', 'Bartek', [card('9', 'spades')]),
+        seat('c', 'Celina', [card('8', 'diamonds')]),
+      ],
+    });
+    expect(legalActions(empty, 'a').takePile).toBe(false);
+    expect(applyAction(empty, 'a', { type: 'takePile' }).ok).toBe(false);
+  });
+});
 
 describe('pojedyncza karta', () => {
   it('równa karta wchodzi, słabsza z ręki nie wchodzi i gracz bierze kupkę', () => {
@@ -389,6 +446,59 @@ describe('pusta ręka', () => {
     expect(punished.reveal).toEqual({ card: card('3', 'hearts'), outcome: 'low' });
     expect(punished.log.at(-1)!.text).toMatch(/odsłania/);
     expect(punished.log.at(-1)!.text).toMatch(/3 kier/);
+    expect(punished.log.at(-1)!.parts?.some((part) => part.type === 'card' && part.card.rank === '3')).toBe(true);
+  });
+
+  it('zakrytą można wziąć do ręki, widzi ją tylko ten gracz, tura zostaje', () => {
+    const start = state({
+      players: [
+        seat('a', 'Ala', [], [null, null, null], [card('3', 'clubs'), card('9', 'hearts'), null]),
+        seat('b', 'Bartek', [card('K', 'spades')]),
+        seat('c', 'Celina', [card('8', 'spades')]),
+      ],
+      center: [card('A', 'spades')],
+    });
+    expect(applyAction(start, 'a', { type: 'takeFaceDown', slot: 1 }).ok).toBe(true);
+    const busy = state({
+      players: [
+        seat('a', 'Ala', [card('2', 'hearts')], [null, null, null], [card('3', 'clubs'), null, null]),
+        seat('b', 'Bartek', [card('K', 'spades')]),
+        seat('c', 'Celina', [card('8', 'spades')]),
+      ],
+    });
+    expect(applyAction(busy, 'a', { type: 'takeFaceDown', slot: 0 }).ok).toBe(false);
+
+    const taken = must(applyAction(start, 'a', { type: 'takeFaceDown', slot: 0 }));
+    expect(taken.players[0]!.hand.map((item) => item.id)).toEqual(['3-clubs']);
+    expect(taken.players[0]!.faceDown[0]).toBeNull();
+    expect(taken.players[0]!.faceDown[1]!.id).toBe('9-hearts');
+    expect(taken.center.map((item) => item.id)).toEqual(['A-spades']);
+    expect(taken.currentIndex).toBe(0);
+    expect(taken.handNote?.playerId).toBe('a');
+    expect(taken.log.at(-1)!.text).toBe('Ala bierze zakrytą kartę do ręki.');
+    expect(JSON.stringify(taken.log)).not.toContain('3-clubs');
+    const room = {
+      code: 'UKRYTA',
+      visibility: 'private' as const,
+      hostId: 'a',
+      players: [A, B, C].map((player) => ({ ...player, token: `secret-${player.id}`, ready: false })),
+      phase: 'playing' as const,
+      game: taken,
+      revision: 2,
+    };
+    const own = project(room, 'a', new Set(['a']));
+    const other = project(room, 'b', new Set(['a', 'b']));
+    expect(own.handNote?.id).toBe('3-clubs');
+    expect(own.seats[0]!.hand?.map((item) => item.id)).toEqual(['3-clubs']);
+    expect(other.handNote).toBeNull();
+    expect(other.seats[0]!.hand).toBeNull();
+    expect(JSON.stringify(other)).not.toContain('3-clubs');
+    expect(JSON.stringify(other)).not.toContain('9-hearts');
+    expect(applyAction(taken, 'a', { type: 'playHand', cardIds: ['3-clubs'] }).ok).toBe(false);
+    const piled = must(applyAction(taken, 'a', { type: 'takePile' }));
+    expect(piled.players[0]!.hand.map((item) => item.id)).toEqual(['3-clubs', 'A-spades']);
+    expect(piled.handNote).toBeNull();
+    expect(piled.currentIndex).toBe(1);
   });
 
   it('zakryta dziesiątka i zakryta piątka przy pustej ręce działają jak specjalne', () => {
@@ -445,7 +555,11 @@ describe('rozdanie', () => {
     }
     expect(ids.size).toBe(52);
     expect(game.players.reduce((sum, player) => sum + player.hand.length, 0)).toBe(52 - 6 * count);
-    expect(game.currentIndex).toBe(start);
+    const opener = game.players.findIndex((player) =>
+      [...player.hand, ...player.faceUp, ...player.faceDown].some((item) => item?.id === '2-hearts'),
+    );
+    expect(game.currentIndex).toBe(opener);
+    expect(game.log[0]!.text).toMatch(/najniższą kartę \(2 kier\)/);
     return order;
   }
 
@@ -555,5 +669,55 @@ describe('stół', () => {
   it('odrzuca HTML i pusty nick', () => {
     expect(createRoom({ code: 'X', visibility: 'public', host: { id: 'a', token: 't', nick: '<script>' } }).ok).toBe(false);
     expect(createRoom({ code: 'X', visibility: 'public', host: { id: 'a', token: 't', nick: '   ' } }).ok).toBe(false);
+  });
+
+  it('gospodarz kończy partię albo rozdaje od nowa, a w pojedynku można się poddać', () => {
+    let room = must(addPlayer(must(addPlayer(hostRoom(), { id: 'b', token: 'tb', nick: 'Bartek' })), { id: 'c', token: 'tc', nick: 'Celina' }));
+    room = must(startGame(room, 'a', () => 0));
+    expect(endGame(room, 'b').ok).toBe(false);
+    expect(rematch(room, 'b', () => 0).ok).toBe(false);
+
+    const restarted = must(rematch(room, 'a', () => 0));
+    expect(restarted.phase).toBe('playing');
+    expect(restarted.game!.log.at(-1)?.text).toMatch(/najniższą kartę/);
+    expect(restarted.game!.log.some((entry) => entry.text.includes('kończy'))).toBe(false);
+
+    const ended = must(endGame(restarted, 'a'));
+    expect(ended.phase).toBe('finished');
+    expect(ended.game!.loserId).toBeNull();
+    expect(ended.game!.currentIndex).toBeNull();
+    expect(ended.game!.log.at(-1)?.text).toBe('Gospodarz zakończył partię.');
+    expect(endGame(ended, 'a').ok).toBe(false);
+
+    const again = must(rematch(ended, 'a', () => 0));
+    expect(again.phase).toBe('playing');
+
+    const early = resign(again.game!, 'a');
+    expect(early.ok).toBe(false);
+
+    const duel = state({
+      players: [
+        seat('a', 'Ala', []),
+        seat('b', 'Bartek', [card('K', 'spades')]),
+        seat('c', 'Celina', [card('9', 'hearts')]),
+      ],
+      current: 1,
+    });
+    duel.players[0]!.exitedPlace = 1;
+    duel.exitOrder = ['a'];
+    expect(resign(duel, 'a').ok).toBe(false);
+    const surrendered = must(resign(duel, 'c'));
+    expect(surrendered.phase).toBe('finished');
+    expect(surrendered.loserId).toBe('c');
+    expect(surrendered.players[1]!.exitedPlace).toBe(2);
+    expect(surrendered.log.at(-1)?.text).toBe('Celina poddaje się. Bartek wygrywa pojedynek (miejsce 2).');
+    expect(surrendered.currentIndex).toBeNull();
+
+    again.game = duel;
+    again.phase = 'playing';
+    const fromRoom = must(resignGame(again, 'b'));
+    expect(fromRoom.phase).toBe('finished');
+    expect(fromRoom.game!.loserId).toBe('b');
+    expect(fromRoom.game!.players[2]!.exitedPlace).toBe(2);
   });
 });

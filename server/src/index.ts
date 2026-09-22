@@ -12,7 +12,9 @@ import {
   leaveLobby,
   listPublic,
   project,
+  endGame,
   rematch,
+  resignGame,
   setReady,
   startGame,
   timeoutPlayer,
@@ -158,8 +160,8 @@ function parseAction(value: unknown): GameAction | null {
     return { type: 'playWayB', handCardIds: action.handCardIds, faceUpId: action.faceUpId };
   }
   if (action.type === 'playFaceUp' && typeof action.cardId === 'string') return { type: 'playFaceUp', cardId: action.cardId };
-  if (action.type === 'playFaceDown' && (action.slot === 0 || action.slot === 1 || action.slot === 2)) {
-    return { type: 'playFaceDown', slot: action.slot };
+  if ((action.type === 'playFaceDown' || action.type === 'takeFaceDown') && (action.slot === 0 || action.slot === 1 || action.slot === 2)) {
+    return { type: action.type, slot: action.slot };
   }
   return null;
 }
@@ -174,6 +176,8 @@ function parseMessage(value: unknown): ClientMessage | null {
     case 'start':
     case 'leave':
     case 'rematch':
+    case 'endGame':
+    case 'resign':
       return { type: message.type };
     case 'create':
       if ((message.visibility !== 'public' && message.visibility !== 'private') || typeof message.nick !== 'string' || message.nick.length > 40 || !isToken(message.token)) {
@@ -307,6 +311,14 @@ function handle(ws: WebSocket, message: ClientMessage): void {
   }
   if (message.type === 'rematch') {
     commit(ws, live, rematch(live.room, playerId, rng));
+    return;
+  }
+  if (message.type === 'endGame') {
+    commit(ws, live, endGame(live.room, playerId));
+    return;
+  }
+  if (message.type === 'resign') {
+    commit(ws, live, resignGame(live.room, playerId));
     return;
   }
   if (message.type === 'kick') {

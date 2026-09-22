@@ -183,17 +183,22 @@ async function run() {
     ids = roster.map((item) => item.id);
     const current = await host.getByTestId('turn').getAttribute('data-player');
     const start = ids.indexOf(current);
-    const rotated = roster.map((_, index) => roster[(start + index) % roster.length].hand);
-    if (JSON.stringify(rotated) !== JSON.stringify([12, 11, 11])) throw new Error(`ręce ${rotated.join(',')}`);
+    const hands = roster.map((item) => item.hand).sort((left, right) => right - left);
+    if (JSON.stringify(hands) !== JSON.stringify([12, 11, 11])) throw new Error(`ręce ${hands.join(',')}`);
+    const opening = await host.getByTestId('banner').innerText();
+    if (!opening.includes('najniższą kartę')) throw new Error(opening);
+    if ((await host.getByTestId('banner').locator('[data-rank="2"][data-suit="hearts"]').count()) !== 1) {
+      throw new Error(opening);
+    }
     const sum = roster.reduce((total, item) => total + item.hand, 0);
     if (sum !== 34) throw new Error(`suma rąk ${sum}`);
     for (const page of pages) {
       if ((await page.locator('[data-testid^="me-down-"]').count()) !== 3) throw new Error('brak 3 zakrytych');
       if ((await page.locator('[data-testid^="me-up-"]').count()) !== 3) throw new Error('brak 3 odkrytych');
     }
-    const ownHand = await host.locator('[data-testid^="hand-"]').count();
+    const ownHand = await host.locator('[data-testid^="hand-"][data-rank]').count();
     if (ownHand !== roster[0].hand) throw new Error('widok ręki nie zgadza się z liczbą');
-    const leaked = await bartek.locator(`[data-testid^="hand-"]`).count();
+    const leaked = await bartek.locator(`[data-testid^="hand-"][data-rank]`).count();
     const bartekHand = roster.find((item) => item.id === ids[1]).hand;
     if (leaked !== bartekHand) throw new Error('cudza ręka jest odkryta');
     pass('rozdanie 3 graczy: 12, 11, 11 oraz zasłonięte ręce');
@@ -207,7 +212,7 @@ async function run() {
     await shot(pages[start], '02-rozdanie');
 
     const actor = pages[start];
-    const natural = actor.locator('[data-testid^="hand-"]').first();
+    const natural = actor.locator('[data-testid^="hand-"][data-rank]').first();
     await targetBox(natural);
     await targetBox(actor.getByTestId('confirm'));
     await targetBox(actor.getByTestId('take-pile'));
@@ -349,7 +354,7 @@ async function run() {
     if ((await sameText(pages, 'center-count')) !== 'Stos: 0') throw new Error('czwórka nie skasowała stosu');
     if ((await sameText(pages, 'burned')) !== 'Spalone: 6') throw new Error(await sameText(pages, 'burned'));
     if ((await host.getByTestId('turn').getAttribute('data-yours')) !== '1') throw new Error('tura nie została przy graczu po czwórce');
-    if ((await host.locator('[data-testid^="hand-"]').count()) !== 1) throw new Error('z ręki zniknęło za dużo kart');
+    if ((await host.locator('[data-testid^="hand-"][data-rank]').count()) !== 1) throw new Error('z ręki zniknęło za dużo kart');
     pass('cztery takie same z ręki');
 
     await setup(request, pages, code, ids, () =>
@@ -462,13 +467,13 @@ async function run() {
         [card('6', 'hearts')],
       ),
     );
-    const handBefore = await host.locator('[data-testid^="hand-"]').evaluateAll((nodes) =>
+    const handBefore = await host.locator('[data-testid^="hand-"][data-rank]').evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('data-testid')).sort(),
     );
     await host.reload();
     await host.getByTestId('conn').filter({ hasText: 'Połączono' }).waitFor();
     await host.locator('.app[data-phase="playing"]').waitFor();
-    const handAfter = await host.locator('[data-testid^="hand-"]').evaluateAll((nodes) =>
+    const handAfter = await host.locator('[data-testid^="hand-"][data-rank]').evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('data-testid')).sort(),
     );
     if (JSON.stringify(handBefore) !== JSON.stringify(handAfter)) throw new Error(`ręka po odświeżeniu ${handAfter.join(',')}`);

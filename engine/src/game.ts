@@ -1,4 +1,4 @@
-import { canPlaySingle, cardLabel, createDeck, isBurn, kartyPhrase, playPhrase, shuffle } from './cards.js';
+import { canPlaySingle, cardLabel, createDeck, isBurn, kartyPhrase, openingKey, shuffle } from './cards.js';
 import {
   EMPTY_LEGAL,
   MIN_PLAYERS,
@@ -7,10 +7,13 @@ import {
   type GameAction,
   type GameState,
   type Legal,
+  type LogPart,
   type Rank,
   type Result,
   type Seat,
 } from './types.js';
+
+type LogPiece = string | Card;
 
 export interface DealPlayer {
   id: string;
@@ -21,10 +24,27 @@ function emptySlots(): (Card | null)[] {
   return [null, null, null];
 }
 
-function pushLog(state: GameState, text: string): void {
+function pushLog(state: GameState, pieces: LogPiece[]): void {
   const id = (state.log.at(-1)?.id ?? 0) + 1;
-  state.log.push({ id, text });
+  const parts: LogPart[] = pieces.map((piece) =>
+    typeof piece === 'string'
+      ? { type: 'text', text: piece }
+      : { type: 'card', card: { id: piece.id, suit: piece.suit, rank: piece.rank } },
+  );
+  const text = pieces.map((piece) => (typeof piece === 'string' ? piece : cardLabel(piece))).join('');
+  state.log.push({ id, text, parts });
   if (state.log.length > 300) state.log.splice(0, state.log.length - 300);
+}
+
+function playPieces(nick: string, cards: readonly Card[], verb: 'kładzie' | 'odsłania'): LogPiece[] {
+  if (cards.length === 1) return [`${nick} ${verb} `, cards[0]!];
+  const pieces: LogPiece[] = [`${nick} kładzie cztery karty (`];
+  cards.forEach((card, index) => {
+    if (index > 0) pieces.push(', ');
+    pieces.push(card);
+  });
+  pieces.push(')');
+  return pieces;
 }
 
 export function hasCards(seat: Seat): boolean {
@@ -57,7 +77,39 @@ function markExit(state: GameState, seat: Seat): void {
   const place = state.exitOrder.length + 1;
   seat.exitedPlace = place;
   state.exitOrder.push(seat.id);
-  pushLog(state, `${seat.nick} wychodzi (miejsce ${place}).`);
+  pushLog(state, [`${seat.nick} wychodzi (miejsce ${place}).`]);
+}
+
+export function resign(state: GameState, playerId: string): Result<GameState> {
+  if (state.phase !== 'playing') return fail('Partia już się skończyła.');
+  const left = living(state);
+  if (left.length !== 2) return fail('Poddać się można tylko w pojedynku.');
+  const seat = left.find((player) => player.id === playerId);
+  if (!seat) return fail('Nie bierzesz udziału w pojedynku.');
+  const rival = left.find((player) => player.id !== playerId)!;
+  const next: GameState = structuredClone(state);
+  next.reveal = null;
+  next.handNote = null;
+  const winner = next.players.find((player) => player.id === rival.id)!;
+  const place = next.exitOrder.length + 1;
+  winner.exitedPlace = place;
+  next.exitOrder.push(winner.id);
+  next.phase = 'finished';
+  next.loserId = playerId;
+  next.currentIndex = null;
+  pushLog(next, [`${seat.nick} poddaje się. ${rival.nick} wygrywa pojedynek (miejsce ${place}).`]);
+  return { ok: true, value: next };
+}
+
+export function abortGame(state: GameState): Result<GameState> {
+  if (state.phase !== 'playing') return fail('Partia już się skończyła.');
+  const next: GameState = structuredClone(state);
+  next.reveal = null;
+  next.handNote = null;
+  next.phase = 'finished';
+  next.currentIndex = null;
+  pushLog(next, ['Gospodarz zakończył partię.']);
+  return { ok: true, value: next };
 }
 
 function closeIfLast(state: GameState): void {
@@ -67,7 +119,7 @@ function closeIfLast(state: GameState): void {
   state.phase = 'finished';
   state.loserId = left[0]?.id ?? null;
   state.currentIndex = null;
-  if (left[0]) pushLog(state, `${left[0].nick} przegrywa.`);
+  if (left[0]) pushLog(state, [`${left[0].nick} przegrywa.`]);
 }
 
 function sameRank(cards: readonly Card[]): boolean {
@@ -121,33 +173,52 @@ export function legalActions(state: GameState, playerId: string): Legal {
     const singles = seat.hand.filter((card) => canPlaySingle(card, state.center)).map((card) => card.id);
     const quads = quadsOf(seat.hand);
     const wayB = wayBOf(seat);
-    const takePile = state.center.length > 0 && singles.length === 0 && quads.length === 0 && wayB === null;
-    return { singles, quads, wayB, takePile, faceUp: [], faceDownSlots: [] };
+    return { singles, quads, wayB, takePile: state.center.length > 0, faceUp: [], faceDownSlots: [] };
   }
   const faceUp = seat.faceUp.flatMap((card) => (card ? [card.id] : []));
+  const takePile = state.center.length > 0;
   if (faceUp.length > 0) {
-    return { singles: [], quads: [], wayB: null, takePile: false, faceUp, faceDownSlots: [] };
+    return { singles: [], quads: [], wayB: null, takePile, faceUp, faceDownSlots: [] };
   }
   const faceDownSlots = seat.faceDown.flatMap((card, index) => (card ? [index] : []));
-  return { singles: [], quads: [], wayB: null, takePile: false, faceUp: [], faceDownSlots };
+  return { singles: [], quads: [], wayB: null, takePile, faceUp: [], faceDownSlots };
 }
 
-function commitPlay(state: GameState, seat: Seat, cards: Card[], lead?: string): void {
+function ownedCards(seat: Seat): Card[] {
+  return [...seat.hand, ...seat.faceUp.filter((card): card is Card => card !== null), ...seat.faceDown.filter((card): card is Card => card !== null)];
+}
+
+export function lowestOpening(seats: readonly Seat[]): { index: number; card: Card } {
+  let bestIndex = 0;
+  let best: Card | null = null;
+  seats.forEach((seat, index) => {
+    for (const card of ownedCards(seat)) {
+      if (!best || openingKey(card) < openingKey(best)) {
+        best = card;
+        bestIndex = index;
+      }
+    }
+  });
+  if (!best) throw new Error('Brak kart do otwarcia');
+  return { index: bestIndex, card: best };
+}
+
+function commitPlay(state: GameState, seat: Seat, cards: Card[], verb: 'kładzie' | 'odsłania' = 'kładzie'): void {
   const from = seatIndex(state, seat);
-  const base = lead ?? `${seat.nick} ${playPhrase(cards)}`;
+  const base = playPieces(seat.nick, cards, verb);
   if (isBurn(cards)) {
     const removed = state.center.length + cards.length;
     state.burnedCount += removed;
     state.center = [];
     const stays = hasCards(seat);
-    pushLog(state, `${base} i kasuje stos (${kartyPhrase(removed)}).${stays ? ' Gra dalej.' : ''}`);
+    pushLog(state, [...base, ` i kasuje stos (${kartyPhrase(removed)}).${stays ? ' Gra dalej.' : ''}`]);
     if (!stays) {
       markExit(state, seat);
       state.currentIndex = nextIndex(state, from);
     }
   } else {
     state.center.push(...cards);
-    pushLog(state, `${base}.`);
+    pushLog(state, [...base, '.']);
     if (!hasCards(seat)) markExit(state, seat);
     state.currentIndex = nextIndex(state, from);
   }
@@ -160,8 +231,8 @@ function punish(state: GameState, seat: Seat, card: Card, source: 'up' | 'down')
   seat.hand.push(...state.center, card);
   state.center = [];
   if (source === 'down') state.reveal = { card, outcome: 'low' };
-  const verb = source === 'down' ? `odsłania ${cardLabel(card)}` : `gra odkrytą ${cardLabel(card)}`;
-  pushLog(state, `${seat.nick} ${verb}. Za niska — bierze kupkę i tę kartę (${kartyPhrase(taken)}).`);
+  const verb = source === 'down' ? 'odsłania ' : 'gra odkrytą ';
+  pushLog(state, [`${seat.nick} ${verb}`, card, `. Za niska — bierze kupkę i tę kartę (${kartyPhrase(taken)}).`]);
   state.currentIndex = nextIndex(state, from);
   closeIfLast(state);
 }
@@ -206,10 +277,11 @@ export function dealGame(players: readonly DealPlayer[], rng: () => number, star
     dealt++;
   }
 
+  const opener = lowestOpening(seats);
   const state: GameState = {
     players: seats,
     startIndex: start,
-    currentIndex: start,
+    currentIndex: opener.index,
     center: [],
     burnedCount: 0,
     outCount: 0,
@@ -218,8 +290,9 @@ export function dealGame(players: readonly DealPlayer[], rng: () => number, star
     loserId: null,
     log: [],
     reveal: null,
+    handNote: null,
   };
-  pushLog(state, `${seats[start]!.nick} zaczyna. Środek jest pusty.`);
+  pushLog(state, [`${seats[opener.index]!.nick} zaczyna — ma najniższą kartę (`, opener.card, `). Środek jest pusty.`]);
   return state;
 }
 
@@ -232,17 +305,15 @@ export function applyAction(state: GameState, playerId: string, action: GameActi
   const next: GameState = structuredClone(state);
   const seat = next.players[next.currentIndex!]!;
   next.reveal = null;
+  next.handNote = null;
 
   if (action.type === 'takePile') {
     const legal = legalActions(next, playerId);
-    if (!legal.takePile) {
-      if (next.center.length === 0) return fail('Środek jest pusty.');
-      return fail('Masz legalny ruch.');
-    }
+    if (!legal.takePile) return fail('Środek jest pusty.');
     const taken = next.center.length;
     seat.hand.push(...next.center);
     next.center = [];
-    pushLog(next, `${seat.nick} bierze kupkę (${kartyPhrase(taken)}).`);
+    pushLog(next, [`${seat.nick} bierze kupkę (${kartyPhrase(taken)}).`]);
     next.currentIndex = nextIndex(next, next.currentIndex!);
     closeIfLast(next);
     return { ok: true, value: next };
@@ -299,10 +370,24 @@ export function applyAction(state: GameState, playerId: string, action: GameActi
     seat.faceDown[action.slot] = null;
     if (canPlaySingle(hidden, next.center)) {
       next.reveal = { card: hidden, outcome: isBurn([hidden]) ? 'burn' : 'play' };
-      commitPlay(next, seat, [hidden], `${seat.nick} odsłania ${cardLabel(hidden)}`);
+      commitPlay(next, seat, [hidden], 'odsłania');
     } else {
       punish(next, seat, hidden, 'down');
     }
+    return { ok: true, value: next };
+  }
+
+  if (action.type === 'takeFaceDown') {
+    if (seat.hand.length > 0 || seat.faceUp.some((card) => card !== null)) {
+      return fail('Zakrytą bierzesz dopiero, gdy nie masz ręki ani odkrytych.');
+    }
+    if (!Number.isInteger(action.slot) || action.slot < 0 || action.slot > 2) return fail('Zły slot.');
+    const hidden = seat.faceDown[action.slot];
+    if (!hidden) return fail('Ten slot jest pusty.');
+    seat.faceDown[action.slot] = null;
+    seat.hand.push(hidden);
+    next.handNote = { playerId: seat.id, card: hidden };
+    pushLog(next, [`${seat.nick} bierze zakrytą kartę do ręki.`]);
     return { ok: true, value: next };
   }
 
@@ -327,7 +412,8 @@ export function dropOut(state: GameState, playerId: string): GameState {
   target.dropped = true;
   next.outCount += removed.length;
   next.reveal = null;
-  pushLog(next, `${target.nick} odpada. Karty wypadają z gry (${kartyPhrase(removed.length)}).`);
+  next.handNote = null;
+  pushLog(next, [`${target.nick} odpada. Karty wypadają z gry (${kartyPhrase(removed.length)}).`]);
   if (wasCurrent) next.currentIndex = nextIndex(next, from);
   closeIfLast(next);
   return next;

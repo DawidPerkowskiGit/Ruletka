@@ -1,17 +1,28 @@
 import type { PublicCard } from 'engine';
 import { cardAria, isRed, suitSymbol } from './labels';
 
+export function CardChip({ card }: { card: PublicCard }) {
+  return (
+    <span className={`chip${isRed(card.suit) ? ' red' : ''}`} data-rank={card.rank} data-suit={card.suit}>
+      {card.rank}
+      <span className="suit">{suitSymbol(card.suit)}</span>
+    </span>
+  );
+}
+
 interface CardProps {
   card: PublicCard;
   testId?: string;
+  flyId?: string;
+  held?: boolean;
   selected?: boolean;
   choice?: boolean;
   disabled?: boolean;
   onClick?: () => void;
 }
 
-export function PlayingCard({ card, testId, selected, choice, disabled, onClick }: CardProps) {
-  const className = ['card', isRed(card.suit) ? 'red' : '', selected ? 'selected' : '', choice ? 'choice' : '', card.rank === '10' ? 'rank-10' : '']
+export function PlayingCard({ card, testId, flyId, held, selected, choice, disabled, onClick }: CardProps) {
+  const className = ['card', isRed(card.suit) ? 'red' : '', held ? 'held' : '', selected ? 'selected' : '', choice ? 'choice' : '', card.rank === '10' ? 'rank-10' : '']
     .filter(Boolean)
     .join(' ');
   const body = (
@@ -31,7 +42,7 @@ export function PlayingCard({ card, testId, selected, choice, disabled, onClick 
   );
   if (!onClick) {
     return (
-      <div className={className} data-testid={testId} data-rank={card.rank} data-suit={card.suit} aria-label={cardAria(card)}>
+      <div className={className} data-testid={testId} data-fly-id={flyId} data-rank={card.rank} data-suit={card.suit} aria-label={cardAria(card)}>
         {body}
       </div>
     );
@@ -41,6 +52,7 @@ export function PlayingCard({ card, testId, selected, choice, disabled, onClick 
       type="button"
       className={className}
       data-testid={testId}
+      data-fly-id={flyId}
       data-rank={card.rank}
       data-suit={card.suit}
       aria-label={cardAria(card)}
@@ -55,21 +67,23 @@ export function PlayingCard({ card, testId, selected, choice, disabled, onClick 
 
 export function CardBack({
   testId,
+  flyId,
   selected,
   choice,
   disabled,
   onClick,
 }: {
   testId?: string;
+  flyId?: string;
   selected?: boolean;
   choice?: boolean;
   disabled?: boolean;
   onClick?: () => void;
 }) {
   const className = ['card', 'back', selected ? 'selected' : '', choice ? 'choice' : ''].filter(Boolean).join(' ');
-  if (!onClick) return <div className={className} data-testid={testId} aria-label="Zakryta karta" />;
+  if (!onClick) return <div className={className} data-testid={testId} data-fly-id={flyId} aria-label="Zakryta karta" />;
   return (
-    <button type="button" className={className} data-testid={testId} aria-label="Zakryta karta" aria-pressed={selected ?? false} disabled={disabled} onClick={onClick}>
+    <button type="button" className={className} data-testid={testId} data-fly-id={flyId} aria-label="Zakryta karta" aria-pressed={selected ?? false} disabled={disabled} onClick={onClick}>
       <span className="back-diamond" aria-hidden="true" />
     </button>
   );
