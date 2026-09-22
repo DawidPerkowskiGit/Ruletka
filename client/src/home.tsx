@@ -53,6 +53,7 @@ export function Home({ nick, urlCode, rooms, pending, onNick, send }: HomeProps)
         </div>
         <button
           type="button"
+          className="primary"
           data-testid="create-ai"
           disabled={!nickOk || pending}
           onClick={() => send({ type: 'create', nick: nick.trim(), visibility: 'private', token: '', ai: true, seats: tableSize }, true)}
