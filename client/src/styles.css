@@ -667,12 +667,7 @@ button.card { min-width: 56px; min-height: 80px; }
   font-weight: 700;
 }
 
-.pile.open .pile-list,
-.pile:focus-within .pile-list { display: block; }
-
-@media (hover: hover) {
-  .pile:hover .pile-list { display: block; }
-}
+.pile.open .pile-list { display: block; }
 
 .flight.card {
   position: fixed;
