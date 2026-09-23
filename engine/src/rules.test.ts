@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRoom, addPlayer, endGame, kickPlayer, leaveSeat, listPublic, rematch, resignGame, setTableSize, startGame, timeoutPlayer } from './room.js';
-import { applyAction, dealGame, legalActions, lowestOpening, resign } from './game.js';
-import { chooseAction } from './ai.js';
+import { applyAction, burnStalemate, dealGame, legalActions, lowestOpening, resign } from './game.js';
+import { alternateAction, chooseAction, positionKey } from './ai.js';
 import { project } from './view.js';
 import type { Card, GameState, Rank, Suit } from './types.js';
 
@@ -775,6 +775,51 @@ describe('stół', () => {
     }
     expect(game.phase).toBe('finished');
     expect(game.loserId).toBeTruthy();
+
+    const swapping = state({
+      players: [seat('a', 'Komputer 1', [card('6', 'hearts'), card('9', 'clubs')]), seat('b', 'Komputer 2', [card('7', 'spades')])],
+      center: [card('8', 'diamonds')],
+      current: 0,
+    });
+    expect(chooseAction(swapping, 'a')).toEqual({ type: 'playHand', cardIds: ['9-clubs'] });
+    expect(alternateAction(swapping, 'a')).toEqual({ type: 'takePile' });
+    const burned = must(burnStalemate(swapping));
+    expect(burned.center).toEqual([]);
+    expect(burned.burnedCount).toBe(1);
+    expect(burned.currentIndex).toBe(0);
+    expect(burned.log.at(-1)?.text).toMatch(/stos spalony/);
+    expect(positionKey(swapping)).toBe(positionKey(structuredClone(swapping)));
+
+    const brake = (seed: number, stopOnRepeat: boolean) => {
+      let played = dealGame([A, B, C], () => seed);
+      const visits = new Map<string, number>();
+      let steps = 0;
+      let looped = false;
+      while (played.phase === 'playing' && steps < 2000) {
+        const key = positionKey(played);
+        const seen = (visits.get(key) ?? 0) + 1;
+        visits.set(key, seen);
+        if (stopOnRepeat && seen >= 2) {
+          looped = true;
+          break;
+        }
+        const id = played.players[played.currentIndex!]!.id;
+        if (!stopOnRepeat && seen >= 3 && played.center.length > 0) {
+          played = must(burnStalemate(played));
+          steps += 1;
+          continue;
+        }
+        let action = chooseAction(played, id)!;
+        if (!stopOnRepeat && seen >= 2) action = alternateAction(played, id) ?? action;
+        played = must(applyAction(played, id, action));
+        steps += 1;
+      }
+      return { played, looped };
+    };
+    expect(brake(0, true).looped).toBe(true);
+    for (const seed of [0, 0.15, 0.4, 0.7, 0.9]) {
+      expect(brake(seed, false).played.phase).toBe('finished');
+    }
 
     const ended = must(endGame(solo, 'a'));
     const left = must(leaveSeat(ended, 'a'));

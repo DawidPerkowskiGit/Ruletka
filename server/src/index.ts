@@ -6,8 +6,11 @@ import { fileURLToPath } from 'node:url';
 import {
   addPlayer,
   applyAction,
+  alternateAction,
+  burnStalemate,
   chooseAction,
   createRoom,
+  positionKey,
   isCard,
   kickPlayer,
   leaveLobby,
@@ -43,6 +46,7 @@ interface Live {
   conns: Map<string, WebSocket>;
   timers: Map<string, ReturnType<typeof setTimeout>>;
   aiTimer: ReturnType<typeof setTimeout> | null;
+  visits: Map<string, number>;
 }
 
 const rooms = new Map<string, Live>();
@@ -78,6 +82,7 @@ function scheduleAi(live: Live): void {
   if (!game || game.phase !== 'playing' || game.currentIndex === null) return;
   const current = game.players[game.currentIndex];
   if (!current || !live.room.players.some((player) => player.id === current.id && player.ai)) return;
+  if (game.log.length <= 1) live.visits.clear();
   const playerId = current.id;
   live.aiTimer = setTimeout(() => {
     live.aiTimer = null;
@@ -85,7 +90,18 @@ function scheduleAi(live: Live): void {
     if (!now || now.phase !== 'playing' || now.currentIndex === null) return;
     const seat = now.players[now.currentIndex];
     if (!seat || seat.id !== playerId) return;
-    const action = chooseAction(now, playerId);
+    const key = positionKey(now);
+    const seen = (live.visits.get(key) ?? 0) + 1;
+    live.visits.set(key, seen);
+    if (seen >= 3 && now.center.length > 0) {
+      const burned = burnStalemate(now);
+      if (!burned.ok) return;
+      live.room = { ...live.room, game: burned.value, phase: burned.value.phase, revision: live.room.revision + 1 };
+      broadcast(live);
+      return;
+    }
+    let action = chooseAction(now, playerId);
+    if (seen >= 2) action = alternateAction(now, playerId) ?? action;
     if (!action) return;
     const played = applyAction(now, playerId, action);
     if (!played.ok) return;
@@ -300,7 +316,7 @@ function handle(ws: WebSocket, message: ClientMessage): void {
       send(ws, { type: 'error', message: created.error });
       return;
     }
-    const live: Live = { room: created.value, conns: new Map(), timers: new Map(), aiTimer: null };
+    const live: Live = { room: created.value, conns: new Map(), timers: new Map(), aiTimer: null, visits: new Map() };
     rooms.set(code, live);
     welcome(ws, live, id, message.token);
     return;
