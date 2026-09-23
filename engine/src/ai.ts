@@ -53,3 +53,21 @@ export function chooseAction(state: GameState, playerId: string): GameAction | n
   if (legal.takePile) return { type: 'takePile' };
   return null;
 }
+
+export function positionKey(state: GameState): string {
+  const hand = (cards: readonly { id: string }[]) => cards.map((card) => card.id).slice().sort().join('.');
+  const slots = (cards: readonly ({ id: string } | null)[]) => cards.map((card) => card?.id ?? '-').join('.');
+  return [
+    state.currentIndex ?? '-',
+    state.center.map((card) => card.id).join(','),
+    ...state.players.flatMap((seat) => [hand(seat.hand), slots(seat.faceUp), slots(seat.faceDown)]),
+  ].join('|');
+}
+
+export function alternateAction(state: GameState, playerId: string): GameAction | null {
+  const normal = chooseAction(state, playerId);
+  const legal = legalActions(state, playerId);
+  const seat = state.players.find((player) => player.id === playerId);
+  if (!seat || !normal || normal.type === 'takePile' || !legal.takePile) return null;
+  return { type: 'takePile' };
+}

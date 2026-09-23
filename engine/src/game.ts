@@ -296,6 +296,19 @@ export function dealGame(players: readonly DealPlayer[], rng: () => number, star
   return state;
 }
 
+export function burnStalemate(state: GameState): Result<GameState> {
+  if (state.phase !== 'playing' || state.currentIndex === null) return fail('Partia już się skończyła.');
+  if (state.center.length === 0) return fail('Środek jest pusty.');
+  const next: GameState = structuredClone(state);
+  const removed = next.center.length;
+  next.burnedCount += removed;
+  next.center = [];
+  next.reveal = null;
+  next.handNote = null;
+  pushLog(next, [`Komputery powtarzają układ — stos spalony (${kartyPhrase(removed)}).`]);
+  return { ok: true, value: next };
+}
+
 export function applyAction(state: GameState, playerId: string, action: GameAction): Result<GameState> {
   if (state.phase !== 'playing' || state.currentIndex === null) return fail('Partia już się skończyła.');
   const current = state.players[state.currentIndex];
